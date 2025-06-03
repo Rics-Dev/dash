@@ -17,7 +17,12 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Separator } from '$lib/components/ui/separator';
 	import { Progress } from '$lib/components/ui/progress';
+	import * as Popover from '$lib/components/ui/popover/index.js';
+	import { Calendar } from '$lib/components/ui/calendar';
+	import { RangeCalendar } from '$lib/components/ui/range-calendar';
 	import { toast } from 'svelte-sonner';
+	import { Chart, Area, Axis, Bars, Tooltip } from 'layerchart';
+	import { getLocalTimeZone } from '@internationalized/date';
 	import {
 		Search,
 		Plus,
@@ -30,12 +35,17 @@
 		Clock,
 		TrendingUp,
 		Users,
-		Calendar,
+		CalendarIcon,
 		Activity,
 		BarChart3,
 		PieChart,
 		ArrowUpRight,
-		ArrowDownRight
+		ArrowDownRight,
+		Filter,
+		Download,
+		Zap,
+		Target,
+		TrendingDown
 	} from 'lucide-svelte';
 
 	let { data } = $props();
@@ -48,6 +58,13 @@
 	let itemsPerPage = $state(10);
 	let selectedTimeframe = $state('all');
 	let selectedStatus = $state('all');
+
+	// Date range selection
+	let dateRangeStart = $state<Date | undefined>(undefined);
+	let dateRangeEnd = $state<Date | undefined>(undefined);
+	let showDatePicker = $state(false);
+	let calendarMode = $state<'single' | 'range'>('range');
+	let customDateRange = $state<any>(undefined);
 
 	// Advanced filtering
 	let filteredTransactions = $derived(
@@ -93,7 +110,22 @@
 				}
 			})();
 
-			return matchesSearch && matchesStatus && matchesTime;
+			// Custom date range filter
+			const matchesDateRange = (() => {
+				if (!dateRangeStart && !dateRangeEnd) return true;
+				const transactionDate = new Date(transaction.timestamp);
+
+				if (dateRangeStart && dateRangeEnd) {
+					return transactionDate >= dateRangeStart && transactionDate <= dateRangeEnd;
+				} else if (dateRangeStart) {
+					return transactionDate >= dateRangeStart;
+				} else if (dateRangeEnd) {
+					return transactionDate <= dateRangeEnd;
+				}
+				return true;
+			})();
+
+			return matchesSearch && matchesStatus && matchesTime && matchesDateRange;
 		})
 	);
 
@@ -104,22 +136,24 @@
 		const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 		const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-		// Filter transactions by time periods
-		const todaysTransactions = transactions.filter(
+		// Filter transactions by time periods (use filteredTransactions for date range)
+		const baseTransactions = dateRangeStart || dateRangeEnd ? filteredTransactions : transactions;
+
+		const todaysTransactions = baseTransactions.filter(
 			(t: Transaction) => new Date(t.timestamp) >= yesterday
 		);
-		const weekTransactions = transactions.filter(
+		const weekTransactions = baseTransactions.filter(
 			(t: Transaction) => new Date(t.timestamp) >= weekAgo
 		);
-		const monthTransactions = transactions.filter(
+		const monthTransactions = baseTransactions.filter(
 			(t: Transaction) => new Date(t.timestamp) >= monthAgo
 		);
 
-		const approved = transactions.filter((t: Transaction) => t.responseCode === '00');
-		const declined = transactions.filter(
+		const approved = baseTransactions.filter((t: Transaction) => t.responseCode === '00');
+		const declined = baseTransactions.filter(
 			(t: Transaction) => t.responseCode && t.responseCode !== '00'
 		);
-		const pending = transactions.filter((t: Transaction) => !t.responseCode);
+		const pending = baseTransactions.filter((t: Transaction) => !t.responseCode);
 
 		const totalRevenue = approved.reduce((sum: number, t: Transaction) => sum + (t.amount || 0), 0);
 		const todaysRevenue = todaysTransactions
@@ -150,50 +184,110 @@
 					todaysTransactions.filter((t: Transaction) => t.responseCode === '00').length
 				: 0;
 
-
-		// Daily transaction trends (last 7 days)
+		// Daily transaction trends (last 30 days for better charts)
 		const dailyTrends = [];
-		for (let i = 6; i >= 0; i--) {
+		for (let i = 29; i >= 0; i--) {
 			const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
 			const dayStart = new Date(date.setHours(0, 0, 0, 0));
 			const dayEnd = new Date(date.setHours(23, 59, 59, 999));
 
-			const dayTransactions = transactions.filter((t: Transaction) => {
+			const dayTransactions = baseTransactions.filter((t: Transaction) => {
 				const transactionDate = new Date(t.timestamp);
 				return transactionDate >= dayStart && transactionDate <= dayEnd;
 			});
 
 			const dayApproved = dayTransactions.filter((t: Transaction) => t.responseCode === '00');
+			const dayDeclined = dayTransactions.filter(
+				(t: Transaction) => t.responseCode && t.responseCode !== '00'
+			);
 			const dayRevenue = dayApproved.reduce(
 				(sum: number, t: Transaction) => sum + (t.amount || 0),
 				0
 			);
 
 			dailyTrends.push({
-				date: dayStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+				date: dayStart.toISOString().split('T')[0],
+				dateLabel: dayStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
 				transactions: dayTransactions.length,
 				approved: dayApproved.length,
-				revenue: dayRevenue
+				declined: dayDeclined.length,
+				revenue: dayRevenue,
+				success_rate:
+					dayTransactions.length > 0 ? (dayApproved.length / dayTransactions.length) * 100 : 0
 			});
 		}
 
-		// Top performing hours
-		const hourlyData = transactions.reduce(
-			(acc: Record<number, number>, t: Transaction) => {
-				const hour = new Date(t.timestamp).getHours();
-				acc[hour] = (acc[hour] || 0) + 1;
-				return acc;
-			},
-			{} as Record<number, number>
+		// Hourly distribution for heatmap
+		const hourlyData = Array.from({ length: 24 }, (_, hour) => ({
+			hour,
+			count: baseTransactions.filter((t: Transaction) => new Date(t.timestamp).getHours() === hour)
+				.length,
+			revenue: baseTransactions
+				.filter(
+					(t: Transaction) => new Date(t.timestamp).getHours() === hour && t.responseCode === '00'
+				)
+				.reduce((sum: number, t: Transaction) => sum + (t.amount || 0), 0)
+		}));
+
+		// Transaction amount distribution
+		const amountRanges = [
+			{ range: '$0-$10', min: 0, max: 10, count: 0 },
+			{ range: '$10-$50', min: 10, max: 50, count: 0 },
+			{ range: '$50-$100', min: 50, max: 100, count: 0 },
+			{ range: '$100-$500', min: 100, max: 500, count: 0 },
+			{ range: '$500+', min: 500, max: Infinity, count: 0 }
+		];
+
+		approved.forEach((t: Transaction) => {
+			const amount = t.amount || 0;
+			const range = amountRanges.find((r) => amount >= r.min && amount < r.max);
+			if (range) range.count++;
+		});
+
+		// Top performing days of week
+		const daysOfWeek = [
+			'Sunday',
+			'Monday',
+			'Tuesday',
+			'Wednesday',
+			'Thursday',
+			'Friday',
+			'Saturday'
+		];
+		const weeklyData = daysOfWeek.map((day, index) => ({
+			day,
+			count: baseTransactions.filter((t: Transaction) => new Date(t.timestamp).getDay() === index)
+				.length,
+			revenue: baseTransactions
+				.filter(
+					(t: Transaction) => new Date(t.timestamp).getDay() === index && t.responseCode === '00'
+				)
+				.reduce((sum: number, t: Transaction) => sum + (t.amount || 0), 0)
+		}));
+
+		// Peak performance metrics
+		const peakHour = hourlyData.reduce((max, current) =>
+			current.count > max.count ? current : max
 		);
 
-		const peakHour =
-			Object.entries(hourlyData).reduce((a, b) =>
-				hourlyData[Number(a[0])] > hourlyData[Number(b[0])] ? a : b
-			)?.[0] || '0';
+		const peakDay = weeklyData.reduce((max, current) =>
+			current.count > max.count ? current : max
+		);
+
+		// Growth calculations
+		const lastWeekRevenue = baseTransactions
+			.filter((t: Transaction) => {
+				const date = new Date(t.timestamp);
+				const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+				return date >= twoWeeksAgo && date < weekAgo && t.responseCode === '00';
+			})
+			.reduce((sum: number, t: Transaction) => sum + (t.amount || 0), 0);
+
+		const revenueGrowth =
+			lastWeekRevenue > 0 ? ((weekRevenue - lastWeekRevenue) / lastWeekRevenue) * 100 : 0;
 
 		return {
-			total: transactions.length,
+			total: baseTransactions.length,
 			approved: approved.length,
 			declined: declined.length,
 			pending: pending.length,
@@ -201,16 +295,21 @@
 			todaysRevenue,
 			weekRevenue,
 			monthRevenue,
+			lastWeekRevenue,
+			revenueGrowth,
 			successRate,
 			dailySuccessRate,
 			avgTransactionValue,
 			todaysAvgValue,
 			dailyTrends,
-			peakHour: parseInt(peakHour),
+			hourlyData,
+			weeklyData,
+			amountRanges,
+			peakHour,
+			peakDay,
 			todaysTransactions: todaysTransactions.length,
 			weekTransactions: weekTransactions.length,
-			monthTransactions: monthTransactions.length,
-			hourlyData
+			monthTransactions: monthTransactions.length
 		};
 	});
 
@@ -223,10 +322,113 @@
 
 	$effect(() => {
 		searchQuery;
-		selectedTimeframe;
 		selectedStatus;
+		dateRangeStart;
+		dateRangeEnd;
+		// When timeframe changes, clear custom date range if not custom
+		if (selectedTimeframe !== 'custom') {
+			dateRangeStart = undefined;
+			dateRangeEnd = undefined;
+		}
 		currentPage = 1;
 	});
+
+	// Effect to set timeframe to custom when date range is selected
+	$effect(() => {
+		if ((dateRangeStart || dateRangeEnd) && selectedTimeframe !== 'custom') {
+			selectedTimeframe = 'custom';
+		}
+	});
+
+	// Date range helper functions
+	function formatDateRange(): string {
+		if (dateRangeStart && dateRangeEnd) {
+			return `${dateRangeStart.toLocaleDateString()} - ${dateRangeEnd.toLocaleDateString()}`;
+		} else if (dateRangeStart) {
+			return `From ${dateRangeStart.toLocaleDateString()}`;
+		} else if (dateRangeEnd) {
+			return `Until ${dateRangeEnd.toLocaleDateString()}`;
+		}
+		return 'Select date range';
+	}
+
+	function clearDateRange() {
+		dateRangeStart = undefined;
+		dateRangeEnd = undefined;
+		selectedTimeframe = 'all';
+	}
+
+	function setQuickDateRange(range: string) {
+		const now = new Date();
+		switch (range) {
+			case 'today':
+				dateRangeStart = new Date(now.setHours(0, 0, 0, 0));
+				dateRangeEnd = new Date(now.setHours(23, 59, 59, 999));
+				break;
+			case 'yesterday':
+				const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+				dateRangeStart = new Date(yesterday.setHours(0, 0, 0, 0));
+				dateRangeEnd = new Date(yesterday.setHours(23, 59, 59, 999));
+				break;
+			case 'last7days':
+				dateRangeStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+				dateRangeEnd = now;
+				break;
+			case 'last30days':
+				dateRangeStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+				dateRangeEnd = now;
+				break;
+			case 'thisMonth':
+				dateRangeStart = new Date(now.getFullYear(), now.getMonth(), 1);
+				dateRangeEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+				break;
+		}
+		selectedTimeframe = 'custom';
+		showDatePicker = false;
+	}
+
+	// Export functionality
+	function exportTransactions() {
+		const dataToExport = filteredTransactions;
+		const headers = [
+			'ID',
+			'Reference Number',
+			'Amount',
+			'Status',
+			'Date',
+			'User ID',
+			'Auth Code',
+			'PAN'
+		];
+
+		const csvContent = [
+			headers.join(','),
+			...dataToExport.map((transaction: Transaction) =>
+				[
+					transaction.id,
+					transaction.referenceNumber,
+					transaction.amount || 0,
+					getStatusText(transaction.responseCode),
+					new Date(transaction.timestamp).toISOString(),
+					transaction.userId,
+					transaction.authorizationCode || 'N/A',
+					transaction.pan ? `****-****-****-${transaction.pan.slice(-4)}` : 'N/A'
+				].join(',')
+			)
+		].join('\n');
+
+		const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+		const link = document.createElement('a');
+		const url = URL.createObjectURL(blob);
+		link.setAttribute('href', url);
+		link.setAttribute('download', `transactions_${new Date().toISOString().split('T')[0]}.csv`);
+		link.style.visibility = 'hidden';
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+
+		toast.success(`Exported ${dataToExport.length} transactions to CSV`);
+	}
 
 	// Modal states
 	let showAddModal = $state(false);
@@ -286,7 +488,6 @@
 		if (!responseCode) return 'Pending';
 		return responseCode === '00' ? 'Approved' : 'Declined';
 	}
-
 
 	function openDetailsModal(transaction: Transaction) {
 		selectedTransaction = transaction;
@@ -383,30 +584,87 @@
 				<BarChart3 class="h-6 w-6 text-primary" />
 			</div>
 			<div>
-				<h1 class="text-3xl font-bold tracking-tight">Transactions </h1>
+				<h1 class="text-3xl font-bold tracking-tight">Transactions Analytics</h1>
 				<p class="text-muted-foreground">
-					Comprehensive transaction insights
+					Comprehensive transaction insights and performance metrics
 				</p>
 			</div>
+		</div>
+		<div class="flex items-center gap-2">
+			<Button variant="outline" size="sm" onclick={exportTransactions}>
+				<Download class="mr-2 h-4 w-4" />
+				Export
+			</Button>
+			<Popover.Root bind:open={showDatePicker}>
+				<Popover.Trigger>
+					<Button variant="outline" size="sm" class="min-w-[200px] justify-start">
+						<CalendarIcon class="mr-2 h-4 w-4" />
+						{formatDateRange()}
+					</Button>
+				</Popover.Trigger>
+				<Popover.Content class="w-auto p-0" align="end">
+					<div class="space-y-4 p-4">
+						<div class="space-y-2">
+							<p class="text-sm font-medium">Quick Select</p>
+							<div class="grid grid-cols-2 gap-2">
+								<Button variant="ghost" size="sm" onclick={() => setQuickDateRange('today')}>
+									Today
+								</Button>
+								<Button variant="ghost" size="sm" onclick={() => setQuickDateRange('yesterday')}>
+									Yesterday
+								</Button>
+								<Button variant="ghost" size="sm" onclick={() => setQuickDateRange('last7days')}>
+									Last 7 days
+								</Button>
+								<Button variant="ghost" size="sm" onclick={() => setQuickDateRange('last30days')}>
+									Last 30 days
+								</Button>
+								<Button variant="ghost" size="sm" onclick={() => setQuickDateRange('thisMonth')}>
+									This month
+								</Button>
+								<Button variant="ghost" size="sm" onclick={clearDateRange}>Clear</Button>
+							</div>
+						</div>
+						<Separator />
+						<div class="space-y-2">
+							<p class="text-sm font-medium">Custom Range</p>
+							<RangeCalendar
+								bind:value={customDateRange}
+								onValueChange={(range) => {
+									if (range?.start && range?.end) {
+										dateRangeStart = range.start.toDate(getLocalTimeZone());
+										dateRangeEnd = range.end.toDate(getLocalTimeZone());
+									}
+								}}
+							/>
+							<div class="flex gap-2">
+								<Button size="sm" onclick={() => (showDatePicker = false)}>Apply</Button>
+							</div>
+						</div>
+					</div>
+				</Popover.Content>
+			</Popover.Root>
 		</div>
 	</div>
 
 	<!-- Enhanced Stats Cards -->
-	<div class="grid gap-4 md:grid-cols-1 lg:grid-cols-3">
+	<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
 		<Card class="border-l-4 border-l-blue-500">
 			<CardContent class="p-6">
 				<div class="flex items-center justify-between">
 					<div>
 						<p class="text-sm font-medium text-muted-foreground">Total Revenue</p>
 						<p class="text-2xl font-bold">{formatAmount(transactionAnalytics.totalRevenue)}</p>
-						<div class="flex items-center gap-1 text-xs text-green-600">
-							<TrendingUp class="h-3 w-3" />
-							<span
-								>+{(
-									(transactionAnalytics.monthRevenue / transactionAnalytics.totalRevenue) *
-									100
-								).toFixed(1)}% this month</span
-							>
+						<div class="flex items-center gap-1 text-xs">
+							{#if transactionAnalytics.revenueGrowth >= 0}
+								<TrendingUp class="h-3 w-3 text-green-600" />
+								<span class="text-green-600">+{transactionAnalytics.revenueGrowth.toFixed(1)}%</span
+								>
+							{:else}
+								<TrendingDown class="h-3 w-3 text-red-600" />
+								<span class="text-red-600">{transactionAnalytics.revenueGrowth.toFixed(1)}%</span>
+							{/if}
+							<span class="text-muted-foreground">vs last week</span>
 						</div>
 					</div>
 					<div class="rounded-full bg-blue-500/10 p-3">
@@ -423,11 +681,14 @@
 						<p class="text-sm font-medium text-muted-foreground">Success Rate</p>
 						<p class="text-2xl font-bold">{transactionAnalytics.successRate.toFixed(1)}%</p>
 						<div class="mt-2">
-							<Progress value={transactionAnalytics.successRate} class="h-1" />
+							<Progress value={transactionAnalytics.successRate} class="h-2" />
 						</div>
+						<p class="mt-1 text-xs text-muted-foreground">
+							Today: {transactionAnalytics.dailySuccessRate.toFixed(1)}%
+						</p>
 					</div>
 					<div class="rounded-full bg-green-500/10 p-3">
-						<CheckCircle class="h-6 w-6 text-green-600" />
+						<Target class="h-6 w-6 text-green-600" />
 					</div>
 				</div>
 			</CardContent>
@@ -452,18 +713,36 @@
 				</div>
 			</CardContent>
 		</Card>
+
+		<Card class="border-l-4 border-l-purple-500">
+			<CardContent class="p-6">
+				<div class="flex items-center justify-between">
+					<div>
+						<p class="text-sm font-medium text-muted-foreground">Peak Performance</p>
+						<p class="text-lg font-bold">{transactionAnalytics.peakDay.day}</p>
+						<p class="text-sm text-purple-600">{transactionAnalytics.peakDay.count} transactions</p>
+						<p class="text-xs text-muted-foreground">
+							Best hour: {transactionAnalytics.peakHour.hour}:00
+						</p>
+					</div>
+					<div class="rounded-full bg-purple-500/10 p-3">
+						<Zap class="h-6 w-6 text-purple-600" />
+					</div>
+				</div>
+			</CardContent>
+		</Card>
 	</div>
 
-	<!-- Time-based Performance Metrics -->
+	<!-- Quick Performance Metrics -->
 	<div class="grid gap-4 md:grid-cols-3">
 		<Card>
-			<CardHeader>
-				<CardTitle class="flex items-center gap-2">
-					<Calendar class="h-5 w-5" />
+			<CardHeader class="pb-2">
+				<CardTitle class="flex items-center gap-2 text-lg">
+					<CalendarIcon class="h-4 w-4" />
 					Today's Performance
 				</CardTitle>
 			</CardHeader>
-			<CardContent class="space-y-4">
+			<CardContent class="space-y-3">
 				<div class="flex items-center justify-between">
 					<span class="text-sm text-muted-foreground">Transactions</span>
 					<span class="font-semibold">{transactionAnalytics.todaysTransactions}</span>
@@ -483,13 +762,13 @@
 		</Card>
 
 		<Card>
-			<CardHeader>
-				<CardTitle class="flex items-center gap-2">
-					<Activity class="h-5 w-5" />
-					Weekly Trends
+			<CardHeader class="pb-2">
+				<CardTitle class="flex items-center gap-2 text-lg">
+					<Activity class="h-4 w-4" />
+					Weekly Summary
 				</CardTitle>
 			</CardHeader>
-			<CardContent class="space-y-4">
+			<CardContent class="space-y-3">
 				<div class="flex items-center justify-between">
 					<span class="text-sm text-muted-foreground">Transactions</span>
 					<span class="font-semibold">{transactionAnalytics.weekTransactions}</span>
@@ -501,20 +780,20 @@
 					>
 				</div>
 				<div class="flex items-center justify-between">
-					<span class="text-sm text-muted-foreground">Avg Daily</span>
+					<span class="text-sm text-muted-foreground">Daily Average</span>
 					<span class="font-semibold">{Math.round(transactionAnalytics.weekTransactions / 7)}</span>
 				</div>
 			</CardContent>
 		</Card>
 
 		<Card>
-			<CardHeader>
-				<CardTitle class="flex items-center gap-2">
-					<TrendingUp class="h-5 w-5" />
+			<CardHeader class="pb-2">
+				<CardTitle class="flex items-center gap-2 text-lg">
+					<TrendingUp class="h-4 w-4" />
 					Monthly Overview
 				</CardTitle>
 			</CardHeader>
-			<CardContent class="space-y-4">
+			<CardContent class="space-y-3">
 				<div class="flex items-center justify-between">
 					<span class="text-sm text-muted-foreground">Transactions</span>
 					<span class="font-semibold">{transactionAnalytics.monthTransactions}</span>
@@ -526,10 +805,16 @@
 					>
 				</div>
 				<div class="flex items-center justify-between">
-					<span class="text-sm text-muted-foreground">Avg Daily</span>
-					<span class="font-semibold"
-						>{Math.round(transactionAnalytics.monthTransactions / 30)}</span
+					<span class="text-sm text-muted-foreground">Growth</span>
+					<span
+						class="font-semibold {transactionAnalytics.revenueGrowth >= 0
+							? 'text-green-600'
+							: 'text-red-600'}"
 					>
+						{transactionAnalytics.revenueGrowth >= 0
+							? '+'
+							: ''}{transactionAnalytics.revenueGrowth.toFixed(1)}%
+					</span>
 				</div>
 			</CardContent>
 		</Card>
@@ -596,60 +881,182 @@
 		</CardContent>
 	</Card>
 
-	<!-- Daily Trends -->
+	<!-- Advanced Charts Section -->
+	<div class="grid gap-4 lg:grid-cols-2">
+		<!-- Revenue Trend Chart -->
+		<Card>
+			<CardHeader>
+				<CardTitle class="flex items-center gap-2">
+					<TrendingUp class="h-5 w-5" />
+					Revenue Trends (30 Days)
+				</CardTitle>
+			</CardHeader>
+			<CardContent>
+				<div class="space-y-2">
+					{#each transactionAnalytics.dailyTrends.slice(-7) as trend, index}
+						{@const maxRevenue = Math.max(
+							...transactionAnalytics.dailyTrends.map((t) => t.revenue)
+						)}
+						{@const heightPercentage = maxRevenue > 0 ? (trend.revenue / maxRevenue) * 100 : 0}
+						<div class="flex items-center gap-3">
+							<div class="w-16 text-xs text-muted-foreground">{trend.dateLabel}</div>
+							<div class="flex-1">
+								<div class="mb-1 flex items-center justify-between">
+									<div
+										class="h-6 rounded bg-gradient-to-r from-primary/20 to-primary/60"
+										style="width: {heightPercentage}%"
+									></div>
+									<span class="ml-2 text-sm font-medium">{formatAmount(trend.revenue)}</span>
+								</div>
+							</div>
+						</div>
+					{/each}
+				</div>
+			</CardContent>
+		</Card>
+
+		<!-- Transaction Volume Chart -->
+		<Card>
+			<CardHeader>
+				<CardTitle class="flex items-center gap-2">
+					<BarChart3 class="h-5 w-5" />
+					Transaction Volume (Last 7 Days)
+				</CardTitle>
+			</CardHeader>
+			<CardContent>
+				<div class="space-y-2">
+					{#each transactionAnalytics.dailyTrends.slice(-7) as trend}
+						{@const maxTransactions = Math.max(
+							...transactionAnalytics.dailyTrends.map((t) => t.transactions)
+						)}
+						{@const approvedPercentage =
+							maxTransactions > 0 ? (trend.approved / maxTransactions) * 100 : 0}
+						{@const declinedPercentage =
+							maxTransactions > 0 ? (trend.declined / maxTransactions) * 100 : 0}
+						<div class="flex items-center gap-3">
+							<div class="w-16 text-xs text-muted-foreground">{trend.dateLabel}</div>
+							<div class="flex-1 space-y-1">
+								<div class="flex items-center gap-1">
+									<div class="h-3 rounded bg-green-500" style="width: {approvedPercentage}%"></div>
+									<span class="text-xs text-green-600">{trend.approved}</span>
+								</div>
+								<div class="flex items-center gap-1">
+									<div class="h-3 rounded bg-red-500" style="width: {declinedPercentage}%"></div>
+									<span class="text-xs text-red-600">{trend.declined}</span>
+								</div>
+							</div>
+							<div class="w-12 text-right text-xs">{trend.success_rate.toFixed(0)}%</div>
+						</div>
+					{/each}
+				</div>
+			</CardContent>
+		</Card>
+	</div>
+
+	<!-- Hourly Performance Heatmap -->
 	<Card>
 		<CardHeader>
 			<CardTitle class="flex items-center gap-2">
-				<BarChart3 class="h-5 w-5" />
-				7-Day Transaction Trends
+				<Activity class="h-5 w-5" />
+				24-Hour Performance Heatmap
 			</CardTitle>
 		</CardHeader>
 		<CardContent>
-			<div class="grid gap-2 md:grid-cols-7">
-				{#each transactionAnalytics.dailyTrends as trend, index}
-					<div class="rounded-lg bg-muted p-4 text-center">
-						<p class="text-sm font-semibold">{trend.date}</p>
-						<Separator class="my-2" />
-						<div class="space-y-1 text-xs">
-							<div class="flex justify-between">
-								<span class="text-muted-foreground">Total</span>
-								<span class="font-medium">{trend.transactions}</span>
-							</div>
-							<div class="flex justify-between">
-								<span class="text-green-600">Approved</span>
-								<span class="font-medium text-green-600">{trend.approved}</span>
-							</div>
-							<div class="flex justify-between">
-								<span class="text-muted-foreground">Revenue</span>
-								<span class="font-medium">{formatAmount(trend.revenue)}</span>
-							</div>
-						</div>
-						{#if index > 0}
-							{@const prevTrend = transactionAnalytics.dailyTrends[index - 1]}
-							{@const change = trend.transactions - prevTrend.transactions}
-							{#if change > 0}
-								<div class="mt-2 flex items-center justify-center gap-1 text-xs text-green-600">
-									<ArrowUpRight class="h-3 w-3" />
-									<span>+{change}</span>
-								</div>
-							{:else if change < 0}
-								<div class="mt-2 flex items-center justify-center gap-1 text-xs text-red-600">
-									<ArrowDownRight class="h-3 w-3" />
-									<span>{change}</span>
-								</div>
-							{:else}
-								<div class="mt-2 text-xs text-muted-foreground">No change</div>
-							{/if}
-						{/if}
+			<div class="grid grid-cols-12 gap-1">
+				{#each transactionAnalytics.hourlyData as hour}
+					{@const intensity = Math.min(
+						hour.count / Math.max(...transactionAnalytics.hourlyData.map((h) => h.count)),
+						1
+					)}
+					<div
+						class="flex aspect-square items-center justify-center rounded-sm border text-xs font-medium transition-colors"
+						style="background-color: hsl(var(--primary) / {intensity * 0.8}); color: {intensity >
+						0.5
+							? 'white'
+							: 'hsl(var(--foreground))'}"
+						title="{hour.hour}:00 - {hour.count} transactions, {formatAmount(hour.revenue)} revenue"
+					>
+						{hour.hour}
 					</div>
 				{/each}
+			</div>
+			<div class="mt-4 flex items-center justify-between text-sm text-muted-foreground">
+				<span>12 AM</span>
+				<span
+					>Peak: {transactionAnalytics.peakHour.hour}:00 ({transactionAnalytics.peakHour.count} transactions)</span
+				>
+				<span>11 PM</span>
 			</div>
 		</CardContent>
 	</Card>
 
+	<!-- Weekly Performance and Amount Distribution -->
+	<div class="grid gap-4 lg:grid-cols-2">
+		<!-- Weekly Performance -->
+		<Card>
+			<CardHeader>
+				<CardTitle class="flex items-center gap-2">
+					<CalendarIcon class="h-5 w-5" />
+					Weekly Performance
+				</CardTitle>
+			</CardHeader>
+			<CardContent>
+				<div class="space-y-3">
+					{#each transactionAnalytics.weeklyData as day}
+						{@const maxCount = Math.max(...transactionAnalytics.weeklyData.map((d) => d.count))}
+						{@const percentage = maxCount > 0 ? (day.count / maxCount) * 100 : 0}
+						<div class="flex items-center justify-between">
+							<div class="flex-1">
+								<div class="mb-1 flex items-center justify-between">
+									<span class="text-sm font-medium">{day.day}</span>
+									<span class="text-sm text-muted-foreground">{day.count} transactions</span>
+								</div>
+								<Progress value={percentage} class="h-2" />
+								<div class="mt-1 text-xs text-muted-foreground">
+									{formatAmount(day.revenue)} revenue
+								</div>
+							</div>
+						</div>
+					{/each}
+				</div>
+			</CardContent>
+		</Card>
+
+		<!-- Amount Distribution -->
+		<Card>
+			<CardHeader>
+				<CardTitle class="flex items-center gap-2">
+					<PieChart class="h-5 w-5" />
+					Transaction Amount Distribution
+				</CardTitle>
+			</CardHeader>
+			<CardContent>
+				<div class="space-y-3">
+					{#each transactionAnalytics.amountRanges as range}
+						{@const maxCount = Math.max(...transactionAnalytics.amountRanges.map((r) => r.count))}
+						{@const percentage = maxCount > 0 ? (range.count / maxCount) * 100 : 0}
+						{@const totalTransactions = transactionAnalytics.approved}
+						{@const sharePercentage =
+							totalTransactions > 0 ? (range.count / totalTransactions) * 100 : 0}
+						<div class="flex items-center justify-between">
+							<div class="flex-1">
+								<div class="mb-1 flex items-center justify-between">
+									<span class="text-sm font-medium">{range.range}</span>
+									<span class="text-sm text-muted-foreground"
+										>{range.count} ({sharePercentage.toFixed(1)}%)</span
+									>
+								</div>
+								<Progress value={percentage} class="h-2" />
+							</div>
+						</div>
+					{/each}
+				</div>
+			</CardContent>
+		</Card>
+	</div>
+
 	<!-- Payment Methods & Peak Hours -->
 	<div class="grid gap-4 md:grid-cols-1">
-
 		<Card>
 			<CardHeader>
 				<CardTitle class="flex items-center gap-2">
@@ -659,10 +1066,10 @@
 			</CardHeader>
 			<CardContent class="space-y-4">
 				<div class="rounded-lg bg-primary/10 p-4 text-center">
-					<div class="text-2xl font-bold text-primary">{transactionAnalytics.peakHour}:00</div>
+					<div class="text-2xl font-bold text-primary">{transactionAnalytics.peakHour.hour}:00</div>
 					<p class="text-sm text-muted-foreground">Peak Transaction Hour</p>
 					<p class="text-xs text-muted-foreground">
-						{transactionAnalytics.hourlyData[transactionAnalytics.peakHour] || 0} transactions
+						{transactionAnalytics.peakHour.count || 0} transactions
 					</p>
 				</div>
 				<div class="grid grid-cols-3 gap-2 text-center text-xs">
@@ -670,27 +1077,27 @@
 						<p class="font-semibold">Morning</p>
 						<p class="text-muted-foreground">6-12</p>
 						<p class="font-medium">
-							{Object.entries(transactionAnalytics.hourlyData)
-								.filter(([hour]) => parseInt(hour) >= 6 && parseInt(hour) < 12)
-								.reduce((sum, [, count]) => sum + (count as number), 0)}
+							{transactionAnalytics.hourlyData
+								.filter((data) => data.hour >= 6 && data.hour < 12)
+								.reduce((sum, data) => sum + data.count, 0)}
 						</p>
 					</div>
 					<div>
 						<p class="font-semibold">Afternoon</p>
 						<p class="text-muted-foreground">12-18</p>
 						<p class="font-medium">
-							{Object.entries(transactionAnalytics.hourlyData)
-								.filter(([hour]) => parseInt(hour) >= 12 && parseInt(hour) < 18)
-								.reduce((sum, [, count]) => sum + (count as number), 0)}
+							{transactionAnalytics.hourlyData
+								.filter((data) => data.hour >= 12 && data.hour < 18)
+								.reduce((sum, data) => sum + data.count, 0)}
 						</p>
 					</div>
 					<div>
 						<p class="font-semibold">Evening</p>
 						<p class="text-muted-foreground">18-24</p>
 						<p class="font-medium">
-							{Object.entries(transactionAnalytics.hourlyData)
-								.filter(([hour]) => parseInt(hour) >= 18)
-								.reduce((sum, [, count]) => sum + (count as number), 0)}
+							{transactionAnalytics.hourlyData
+								.filter((data) => data.hour >= 18)
+								.reduce((sum, data) => sum + data.count, 0)}
 						</p>
 					</div>
 				</div>
@@ -701,35 +1108,106 @@
 	<!-- Advanced Filters -->
 	<Card>
 		<CardContent class="p-6">
-			<div class="flex flex-wrap items-center gap-4">
-				<div class="relative min-w-64 flex-1">
-					<Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-					<Input
-						placeholder="Search transactions by reference number, auth code, PAN, or amount..."
-						bind:value={searchQuery}
-						class="pl-10"
-					/>
+			<div class="space-y-4">
+				<div class="flex flex-wrap items-center gap-4">
+					<div class="relative min-w-64 flex-1">
+						<Search
+							class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+						/>
+						<Input
+							placeholder="Search transactions by reference number, auth code, PAN, or amount..."
+							bind:value={searchQuery}
+							class="pl-10"
+						/>
+					</div>
+					<Separator orientation="vertical" class="h-10" />
+					<div class="flex items-center gap-2">
+						<Label class="text-sm">Status:</Label>
+						<select
+							bind:value={selectedStatus}
+							class="rounded border bg-transparent px-3 py-1 text-sm"
+						>
+							<option value="all">All</option>
+							<option value="approved">Approved</option>
+							<option value="declined">Declined</option>
+							<option value="pending">Pending</option>
+						</select>
+					</div>
+					<div class="flex items-center gap-2">
+						<Label class="text-sm">Timeframe:</Label>
+						<select
+							bind:value={selectedTimeframe}
+							class="rounded border bg-transparent px-3 py-1 text-sm"
+						>
+							<option value="all">All Time</option>
+							<option value="24h">Last 24 Hours</option>
+							<option value="7d">Last 7 Days</option>
+							<option value="30d">Last 30 Days</option>
+							<option value="90d">Last 90 Days</option>
+							<option value="custom">Custom Range</option>
+						</select>
+					</div>
+					<Button variant="outline" size="sm">
+						<Filter class="mr-2 h-4 w-4" />
+						Advanced
+					</Button>
 				</div>
-				<Separator orientation="vertical" class="h-10" />
-				<div class="flex items-center gap-2">
-					<Label class="text-sm">Status:</Label>
-					<select bind:value={selectedStatus} class="bg-transparent rounded border px-3 py-1 text-sm">
-						<option value="all">All</option>
-						<option value="approved">Approved</option>
-						<option value="declined">Declined</option>
-						<option value="pending">Pending</option>
-					</select>
-				</div>
-				<div class="flex items-center gap-2">
-					<Label class="text-sm">Timeframe:</Label>
-					<select bind:value={selectedTimeframe} class="bg-transparent rounded border px-3 py-1 text-sm">
-						<option value="all">All Time</option>
-						<option value="24h">Last 24 Hours</option>
-						<option value="7d">Last 7 Days</option>
-						<option value="30d">Last 30 Days</option>
-						<option value="90d">Last 90 Days</option>
-					</select>
-				</div>
+
+				<!-- Active Filters Display -->
+				{#if searchQuery || selectedStatus !== 'all' || selectedTimeframe !== 'all' || dateRangeStart || dateRangeEnd}
+					<div class="flex flex-wrap items-center gap-2">
+						<span class="text-sm text-muted-foreground">Active filters:</span>
+						{#if searchQuery}
+							<Badge variant="secondary" class="gap-1">
+								Search: {searchQuery}
+								<button
+									onclick={() => (searchQuery = '')}
+									class="ml-1 rounded-full p-0.5 hover:bg-destructive/20"
+								>
+									<XCircle class="h-3 w-3" />
+								</button>
+							</Badge>
+						{/if}
+						{#if selectedStatus !== 'all'}
+							<Badge variant="secondary" class="gap-1">
+								Status: {selectedStatus}
+								<button
+									onclick={() => (selectedStatus = 'all')}
+									class="ml-1 rounded-full p-0.5 hover:bg-destructive/20"
+								>
+									<XCircle class="h-3 w-3" />
+								</button>
+							</Badge>
+						{/if}
+						{#if selectedTimeframe !== 'all'}
+							<Badge variant="secondary" class="gap-1">
+								Time: {selectedTimeframe === 'custom' ? formatDateRange() : selectedTimeframe}
+								<button
+									onclick={() => {
+										selectedTimeframe = 'all';
+										clearDateRange();
+									}}
+									class="ml-1 rounded-full p-0.5 hover:bg-destructive/20"
+								>
+									<XCircle class="h-3 w-3" />
+								</button>
+							</Badge>
+						{/if}
+						<Button
+							variant="ghost"
+							size="sm"
+							onclick={() => {
+								searchQuery = '';
+								selectedStatus = 'all';
+								selectedTimeframe = 'all';
+								clearDateRange();
+							}}
+							class="text-xs"
+						>
+							Clear all
+						</Button>
+					</div>
+				{/if}
 			</div>
 		</CardContent>
 	</Card>

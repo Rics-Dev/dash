@@ -35,10 +35,87 @@
 		Eye,
 		Clock,
 		ShoppingBag,
-		CreditCard
+		CreditCard,
+		Star,
+		Package,
+		Monitor,
+		Smartphone
 	} from 'lucide-svelte';
 
+	import * as Chart from '$lib/components/ui/chart/index.js';
+	import { scaleBand, scaleLinear } from 'd3-scale';
+	import { BarChart, AreaChart, ScatterChart } from 'layerchart';
+
+	type DailyStat = {
+		date: string;
+		transactions: number;
+		revenue: number;
+		users: number;
+		label: string;
+	};
+
 	let { data } = $props();
+
+	// Chart data and configurations
+	const dailyStatsChartConfig = {
+		users: {
+			label: 'New Users',
+			color: '#3b82f6'
+		},
+		revenue: {
+			label: 'Revenue',
+			color: '#10b981'
+		},
+		transactions: {
+			label: 'Transactions',
+			color: '#8b5cf6'
+		}
+	} satisfies Chart.ChartConfig;
+
+	const revenueAreaChartConfig = {
+		web: {
+			label: 'Web Platform',
+			color: '#2563eb'
+		},
+		mobile: {
+			label: 'Mobile Platform',
+			color: '#60a5fa'
+		}
+	} satisfies Chart.ChartConfig;
+
+	const performanceChartConfig = {
+		memory: {
+			label: 'Memory Usage',
+			color: '#ef4444'
+		},
+		cpu: {
+			label: 'CPU Usage',
+			color: '#f59e0b'
+		},
+		database: {
+			label: 'Database Performance',
+			color: '#10b981'
+		}
+	} satisfies Chart.ChartConfig;
+
+	// Generate revenue breakdown data
+	let revenueBreakdownData = $derived(
+		data.dailyStats
+			? data.dailyStats.map((day) => ({
+					month: day.label,
+					web: Math.floor(day.revenue * 0.6),
+					mobile: Math.floor(day.revenue * 0.4)
+				}))
+			: []
+	);
+
+	// Generate performance metrics data
+	let performanceData = $derived([
+		{ metric: 'Memory', usage: data.systemHealth?.memoryUsage || 0 },
+		{ metric: 'CPU', usage: data.systemHealth?.cpuUsage || 0 },
+		{ metric: 'Database', usage: data.systemHealth?.databasePerformance || 0 },
+		{ metric: 'API', usage: Math.min(100, (data.systemHealth?.apiResponseTime || 0) / 2) }
+	]);
 
 	// Function to get the appropriate icon component
 	function getIconComponent(title: string) {
@@ -47,85 +124,16 @@
 				return Users;
 			case 'Total Transactions':
 				return CreditCard;
-			case 'Redemptions':
+			case 'Total Revenue':
+				return DollarSign;
+			case 'Active Rewards':
 				return Gift;
 			default:
 				return Activity;
 		}
 	}
 
-	// Mock data for charts and tables
-	const monthlyStats = [
-		{ month: 'Jan', users: 1200, revenue: 45000, transactions: 890 },
-		{ month: 'Feb', users: 1450, revenue: 52000, transactions: 1020 },
-		{ month: 'Mar', users: 1650, revenue: 58000, transactions: 1180 },
-		{ month: 'Apr', users: 1800, revenue: 62000, transactions: 1350 },
-		{ month: 'May', users: 2100, revenue: 71000, transactions: 1520 },
-		{ month: 'Jun', users: 2350, revenue: 78000, transactions: 1680 }
-	];
-
-	const recentTransactions = [
-		{
-			id: 'TXN-001',
-			customer: 'John Doe',
-			amount: 129.99,
-			status: 'completed',
-			date: '2025-06-02'
-		},
-		{
-			id: 'TXN-002',
-			customer: 'Jane Smith',
-			amount: 89.5,
-			status: 'pending',
-			date: '2025-06-02'
-		},
-		{
-			id: 'TXN-003',
-			customer: 'Mike Johnson',
-			amount: 259.0,
-			status: 'completed',
-			date: '2025-06-01'
-		},
-		{
-			id: 'TXN-004',
-			customer: 'Sarah Wilson',
-			amount: 45.75,
-			status: 'failed',
-			date: '2025-06-01'
-		},
-		{
-			id: 'TXN-005',
-			customer: 'Chris Brown',
-			amount: 199.99,
-			status: 'completed',
-			date: '2025-05-31'
-		}
-	];
-
-	const topProducts = [
-		{ name: 'Premium Subscription', sales: 1234, revenue: 123400 },
-		{ name: 'Basic Plan', sales: 2345, revenue: 93800 },
-		{ name: 'Pro Features', sales: 876, revenue: 87600 },
-		{ name: 'Mobile App', sales: 654, revenue: 32700 },
-		{ name: 'Enterprise', sales: 123, revenue: 61500 }
-	];
-
 	let selectedDate = $state(undefined);
-
-	const chartConfig = {
-		users: {
-			label: 'Users',
-			color: 'hsl(var(--chart-1))'
-		},
-		revenue: {
-			label: 'Revenue',
-			color: 'hsl(var(--chart-2))'
-		},
-		transactions: {
-			label: 'Transactions',
-			color: 'hsl(var(--chart-3))'
-		}
-	};
 
 	function formatCurrency(amount: number) {
 		return new Intl.NumberFormat('en-US', {
@@ -146,6 +154,38 @@
 				return 'outline';
 		}
 	}
+
+	function getActivityIcon(type: string) {
+		switch (type) {
+			case 'user_registration':
+				return Users;
+			case 'transaction':
+				return CreditCard;
+			case 'reward':
+				return Gift;
+			case 'system':
+				return Activity;
+			default:
+				return Activity;
+		}
+	}
+
+	function formatRelativeTime(timestamp: string) {
+		const now = new Date();
+		const time = new Date(timestamp);
+		const diffMs = now.getTime() - time.getTime();
+		const diffMinutes = Math.floor(diffMs / (1000 * 60));
+		const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+		const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+		if (diffMinutes < 60) {
+			return `${diffMinutes}m ago`;
+		} else if (diffHours < 24) {
+			return `${diffHours}h ago`;
+		} else {
+			return `${diffDays}d ago`;
+		}
+	}
 </script>
 
 <main class="flex-1 space-y-6 p-6">
@@ -161,10 +201,6 @@
 			<Button variant="outline">
 				<BarChart3 class="mr-2 h-4 w-4" />
 				Export Report
-			</Button>
-			<Button>
-				<Eye class="mr-2 h-4 w-4" />
-				View Analytics
 			</Button>
 		</div>
 	</div>
@@ -199,110 +235,292 @@
 
 	<!-- Charts and Analytics Section -->
 	<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-		<!-- Monthly Overview Chart -->
+		<!-- Daily Statistics Chart -->
 		<Card class="col-span-4">
 			<CardHeader>
 				<CardTitle class="flex items-center gap-2">
 					<BarChart3 class="h-5 w-5" />
-					Monthly Overview
+					Daily Statistics
 				</CardTitle>
 			</CardHeader>
 			<CardContent class="pl-2">
 				<div class="h-[300px] w-full">
-					<!-- Simple bar chart representation -->
-					<div class="flex h-full items-end justify-between space-x-2">
-						{#each monthlyStats as month}
-							<div class="flex flex-col items-center space-y-1">
-								<div class="flex h-full flex-col justify-end space-y-1">
-									<div
-										class="w-12 bg-blue-500"
-										style="height: {(month.users / 2500) * 100}%"
-										title="Users: {month.users}"
-									></div>
-									<div
-										class="w-12 bg-green-500"
-										style="height: {(month.revenue / 80000) * 100}%"
-										title="Revenue: ${month.revenue}"
-									></div>
-									<div
-										class="w-12 bg-purple-500"
-										style="height: {(month.transactions / 1700) * 100}%"
-										title="Transactions: {month.transactions}"
-									></div>
-								</div>
-								<span class="text-xs text-muted-foreground">{month.month}</span>
-							</div>
-						{/each}
-					</div>
-					<div class="mt-4 flex justify-center space-x-4 text-xs">
-						<div class="flex items-center">
-							<div class="mr-2 h-3 w-3 bg-blue-500"></div>
-							Users
+					{#if data.dailyStats && data.dailyStats.length > 0}
+						<Chart.Container config={dailyStatsChartConfig} class="min-h-[200px] w-full">
+							<BarChart
+								data={data.dailyStats as DailyStat[]}
+								xScale={scaleBand().padding(0.25)}
+								x="label"
+								axis="x"
+								seriesLayout="group"
+								series={[
+									{
+										key: 'users',
+										label: dailyStatsChartConfig.users.label,
+										color: dailyStatsChartConfig.users.color
+									},
+									{
+										key: 'transactions',
+										label: dailyStatsChartConfig.transactions.label,
+										color: dailyStatsChartConfig.transactions.color
+									}
+								]}
+								props={{
+									xAxis: {
+										format: (d) => d,
+										tickLabelProps: { 'font-size': 12 }
+									},
+									yAxis: {
+										format: (d) => d.toLocaleString(),
+										tickLabelProps: { 'font-size': 12 }
+									}
+								}}
+							>
+								{#snippet tooltip()}
+									<Chart.Tooltip />
+								{/snippet}
+							</BarChart>
+						</Chart.Container>
+					{:else}
+						<div class="flex h-full items-center justify-center">
+							<p class="text-muted-foreground">No data available</p>
 						</div>
-						<div class="flex items-center">
-							<div class="mr-2 h-3 w-3 bg-green-500"></div>
-							Revenue
-						</div>
-						<div class="flex items-center">
-							<div class="mr-2 h-3 w-3 bg-purple-500"></div>
-							Transactions
-						</div>
-					</div>
+					{/if}
 				</div>
 			</CardContent>
 		</Card>
 
-		<!-- Recent Activity & Calendar -->
+		<!-- Calendar & Activity Panel -->
 		<Card class="col-span-3">
 			<CardHeader>
 				<CardTitle class="flex items-center gap-2">
 					<CalendarIcon class="h-5 w-5" />
-					Calendar & Activity
+					Calendar & Recent Activity
 				</CardTitle>
 			</CardHeader>
 			<CardContent class="space-y-4">
-				<Calendar type="single" bind:value={selectedDate} />
+				<!-- Improved Calendar Section -->
+				<div class="flex flex-col items-center rounded-lg bg-muted/30 p-3">
+					<Calendar type="single" bind:value={selectedDate} class="rounded-md border-0" />
+				</div>
+
 				<Separator />
-				<div class="space-y-2">
-					<h4 class="text-sm font-medium">Recent Activity</h4>
-					<div class="space-y-2">
+
+				<!-- Recent Activity Section -->
+				<div class="space-y-3">
+					<h4 class="flex items-center gap-2 text-sm font-semibold">
+						<Activity class="h-4 w-4" />
+						Recent Activity
+					</h4>
+					<div class="max-h-48 space-y-3 overflow-y-auto">
 						{#if data.recentActivity && data.recentActivity.length > 0}
-							{#each data.recentActivity.slice(0, 3) as activity}
-								<div class="flex items-center space-x-2 text-sm">
+							{#each data.recentActivity.slice(0, 5) as activity}
+								{@const IconComponent = getActivityIcon(activity.type)}
+								<div
+									class="flex items-start space-x-3 rounded-lg p-2 transition-colors hover:bg-muted/50"
+								>
+									<div class="mt-1">
+										<IconComponent class="h-4 w-4 text-muted-foreground" />
+									</div>
+									<div class="flex-1 space-y-1">
+										<p class="text-sm">{activity.message}</p>
+										<p class="text-xs text-muted-foreground">
+											{formatRelativeTime(activity.timestamp)}
+										</p>
+									</div>
 									<div
-										class="h-2 w-2 rounded-full {activity.status === 'success'
+										class="mt-2 h-2 w-2 rounded-full {activity.status === 'success'
 											? 'bg-green-500'
 											: activity.status === 'info'
 												? 'bg-blue-500'
-												: 'bg-purple-500'}"
+												: activity.status === 'warning'
+													? 'bg-yellow-500'
+													: 'bg-purple-500'}"
 									></div>
-									<span>{activity.message}</span>
-									<span class="text-muted-foreground">
-										{new Date(activity.timestamp).toLocaleTimeString([], {
-											hour: '2-digit',
-											minute: '2-digit'
-										})}
-									</span>
 								</div>
 							{/each}
 						{:else}
-							<div class="flex items-center space-x-2 text-sm">
-								<div class="h-2 w-2 rounded-full bg-green-500"></div>
-								<span>New user registered</span>
-								<span class="text-muted-foreground">2min ago</span>
-							</div>
-							<div class="flex items-center space-x-2 text-sm">
-								<div class="h-2 w-2 rounded-full bg-blue-500"></div>
-								<span>Transaction completed</span>
-								<span class="text-muted-foreground">5min ago</span>
-							</div>
-							<div class="flex items-center space-x-2 text-sm">
-								<div class="h-2 w-2 rounded-full bg-purple-500"></div>
-								<span>Reward redeemed</span>
-								<span class="text-muted-foreground">10min ago</span>
+							<div class="py-6 text-center">
+								<Activity class="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
+								<p class="text-sm text-muted-foreground">No recent activity</p>
 							</div>
 						{/if}
 					</div>
+				</div>
+			</CardContent>
+		</Card>
+	</div>
+
+	<!-- Revenue Breakdown Chart -->
+	<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+		<!-- Revenue by Platform -->
+		<Card class="col-span-4">
+			<CardHeader>
+				<CardTitle class="flex items-center gap-2">
+					<PieChart class="h-5 w-5" />
+					Revenue by Platform
+				</CardTitle>
+			</CardHeader>
+			<CardContent>
+				<div class="h-[300px] w-full">
+					{#if revenueBreakdownData && revenueBreakdownData.length > 0}
+						<Chart.Container config={revenueAreaChartConfig} class="min-h-[200px] w-full">
+							<AreaChart
+								data={revenueBreakdownData}
+								xScale={scaleBand().padding(0.1)}
+								x="month"
+								axis="x"
+								legend
+								series={[
+									{
+										key: 'web',
+										label: revenueAreaChartConfig.web.label,
+										color: revenueAreaChartConfig.web.color
+									},
+									{
+										key: 'mobile',
+										label: revenueAreaChartConfig.mobile.label,
+										color: revenueAreaChartConfig.mobile.color
+									}
+								]}
+								props={{
+									xAxis: {
+										format: (d) => d,
+										tickLabelProps: { 'font-size': 12 }
+									},
+									yAxis: {
+										format: (d) => `$${d.toLocaleString()}`,
+										tickLabelProps: { 'font-size': 12 }
+									}
+								}}
+							>
+								{#snippet tooltip()}
+									<Chart.Tooltip />
+								{/snippet}
+							</AreaChart>
+						</Chart.Container>
+					{:else}
+						<div class="flex h-full items-center justify-center">
+							<p class="text-muted-foreground">No data available</p>
+						</div>
+					{/if}
+				</div>
+			</CardContent>
+		</Card>
+
+		<!-- System Performance Chart -->
+		<Card class="col-span-3">
+			<CardHeader>
+				<CardTitle class="flex items-center gap-2">
+					<Activity class="h-5 w-5" />
+					System Performance
+				</CardTitle>
+			</CardHeader>
+			<CardContent>
+				<div class="h-[300px] w-full">
+					{#if performanceData && performanceData.length > 0}
+						<Chart.Container config={performanceChartConfig} class="min-h-[200px] w-full">
+							<BarChart
+								data={performanceData}
+								xScale={scaleBand().padding(0.3)}
+								x="metric"
+								y="usage"
+								axis="x"
+								series={[
+									{
+										key: 'usage',
+										label: 'Usage %',
+										color: '#6366f1'
+									}
+								]}
+								props={{
+									xAxis: {
+										format: (d) => d,
+										tickLabelProps: { 'font-size': 12 }
+									},
+									yAxis: {
+										format: (d) => `${d}%`,
+										tickLabelProps: { 'font-size': 12 }
+									}
+								}}
+							>
+								{#snippet tooltip()}
+									<Chart.Tooltip />
+								{/snippet}
+							</BarChart>
+						</Chart.Container>
+					{:else}
+						<div class="flex h-full items-center justify-center">
+							<p class="text-muted-foreground">No data available</p>
+						</div>
+					{/if}
+				</div>
+			</CardContent>
+		</Card>
+	</div>
+
+	<!-- Growth Trends Chart -->
+	<div class="grid gap-4 md:grid-cols-1">
+		<Card>
+			<CardHeader>
+				<CardTitle class="flex items-center gap-2">
+					<TrendingUp class="h-5 w-5" />
+					Monthly Growth Trends
+				</CardTitle>
+			</CardHeader>
+			<CardContent class="pb-6">
+				<div class="h-[280px] w-full">
+					{#if data.monthlyGrowth}
+						{@const growthData = [
+							{ category: 'Users', growth: data.monthlyGrowth.users || 0 },
+							{ category: 'Revenue', growth: data.monthlyGrowth.revenue || 0 },
+							{ category: 'Transactions', growth: data.monthlyGrowth.transactions || 0 },
+							{ category: 'Engagement', growth: data.monthlyGrowth.engagement || 0 }
+						]}
+						<Chart.Container
+							config={{
+								growth: {
+									label: 'Growth %',
+									color: '#10b981'
+								}
+							}}
+							class="h-full w-full"
+						>
+							<BarChart
+								data={growthData}
+								xScale={scaleBand().padding(0.2)}
+								x="category"
+								y="growth"
+								axis="x"
+								legend
+								series={[
+									{
+										key: 'growth',
+										label: 'Monthly Growth %',
+										color: '#10b981'
+									}
+								]}
+								props={{
+									xAxis: {
+										format: (d) => d,
+										tickLabelProps: { 'font-size': 12 }
+									},
+									yAxis: {
+										format: (d) => `${d}%`,
+										tickLabelProps: { 'font-size': 12 }
+									}
+								}}
+							>
+								{#snippet tooltip()}
+									<Chart.Tooltip />
+								{/snippet}
+							</BarChart>
+						</Chart.Container>
+					{:else}
+						<div class="flex h-full items-center justify-center">
+							<p class="text-muted-foreground">No growth data available</p>
+						</div>
+					{/if}
 				</div>
 			</CardContent>
 		</Card>
@@ -319,56 +537,106 @@
 				</CardTitle>
 			</CardHeader>
 			<CardContent>
-				<Table>
-					<TableHeader>
-						<TableRow>
-							<TableHead>Transaction ID</TableHead>
-							<TableHead>Customer</TableHead>
-							<TableHead>Amount</TableHead>
-							<TableHead>Status</TableHead>
-							<TableHead>Date</TableHead>
-						</TableRow>
-					</TableHeader>
-					<TableBody>
-						{#each recentTransactions as transaction}
+				{#if data.recentTransactions && data.recentTransactions.length > 0}
+					<Table>
+						<TableHeader>
 							<TableRow>
-								<TableCell class="font-medium">{transaction.id}</TableCell>
-								<TableCell>{transaction.customer}</TableCell>
-								<TableCell>{formatCurrency(transaction.amount)}</TableCell>
-								<TableCell>
-									<Badge variant={getStatusBadgeVariant(transaction.status)}>
-										{transaction.status}
-									</Badge>
-								</TableCell>
-								<TableCell>{transaction.date}</TableCell>
+								<TableHead>Reference</TableHead>
+								<TableHead>Amount</TableHead>
+								<TableHead>Status</TableHead>
+								<TableHead>Date</TableHead>
 							</TableRow>
-						{/each}
-					</TableBody>
-				</Table>
+						</TableHeader>
+						<TableBody>
+							{#each data.recentTransactions.slice(0, 5) as transaction}
+								<TableRow>
+									<TableCell class="font-mono text-sm">{transaction.referenceNumber}</TableCell>
+									<TableCell class="font-medium">{formatCurrency(transaction.amount)}</TableCell>
+									<TableCell>
+										<Badge variant={getStatusBadgeVariant(transaction.status)}>
+											{transaction.status}
+										</Badge>
+									</TableCell>
+									<TableCell class="text-muted-foreground">
+										{new Date(transaction.timestamp).toLocaleDateString()}
+									</TableCell>
+								</TableRow>
+							{/each}
+						</TableBody>
+					</Table>
+				{:else}
+					<div class="py-8 text-center">
+						<CreditCard class="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+						<p class="text-muted-foreground">No transactions found</p>
+					</div>
+				{/if}
 			</CardContent>
 		</Card>
 
-		<!-- Top Products & Performance Metrics -->
+		<!-- Top Articles & Statistics -->
 		<Card class="col-span-3">
 			<CardHeader>
 				<CardTitle class="flex items-center gap-2">
-					<ShoppingBag class="h-5 w-5" />
-					Top Products
+					<Package class="h-5 w-5" />
+					{data.topArticles && data.topArticles.length > 0 ? 'Top Articles' : 'Quick Stats'}
 				</CardTitle>
 			</CardHeader>
 			<CardContent class="space-y-4">
-				{#each topProducts as product}
-					<div class="flex items-center justify-between">
-						<div class="space-y-1">
-							<p class="text-sm font-medium leading-none">{product.name}</p>
-							<p class="text-xs text-muted-foreground">{product.sales} sales</p>
+				{#if data.topArticles && data.topArticles.length > 0}
+					{#each data.topArticles as article}
+						<div class="flex items-center justify-between rounded-lg border p-3">
+							<div class="space-y-1">
+								<p class="text-sm font-medium leading-none">{article.title}</p>
+								<p class="text-xs text-muted-foreground">
+									{article.sales} sales • ${article.price?.toFixed(2)}
+								</p>
+							</div>
+							<div class="text-right">
+								<p class="text-sm font-medium">{formatCurrency(article.revenue)}</p>
+								<div class="flex items-center text-xs text-green-600">
+									<TrendingUp class="mr-1 h-3 w-3" />
+									Popular
+								</div>
+							</div>
 						</div>
-						<div class="text-right">
-							<p class="text-sm font-medium">{formatCurrency(product.revenue)}</p>
+					{/each}
+				{:else}
+					<!-- Quick Statistics when no articles -->
+					<div class="space-y-4">
+						<div class="flex items-center justify-between rounded-lg bg-muted/30 p-3">
+							<div class="flex items-center space-x-3">
+								<Users class="h-5 w-5 text-blue-500" />
+								<div>
+									<p class="text-sm font-medium">Active Users</p>
+									<p class="text-xs text-muted-foreground">Last 30 days</p>
+								</div>
+							</div>
+							<p class="text-lg font-bold">{data.userStats?.active || 0}</p>
+						</div>
+
+						<div class="flex items-center justify-between rounded-lg bg-muted/30 p-3">
+							<div class="flex items-center space-x-3">
+								<CreditCard class="h-5 w-5 text-green-500" />
+								<div>
+									<p class="text-sm font-medium">Success Rate</p>
+									<p class="text-xs text-muted-foreground">Transactions</p>
+								</div>
+							</div>
+							<p class="text-lg font-bold">{data.transactionStats?.successRate || 0}%</p>
+						</div>
+
+						<div class="flex items-center justify-between rounded-lg bg-muted/30 p-3">
+							<div class="flex items-center space-x-3">
+								<Gift class="h-5 w-5 text-purple-500" />
+								<div>
+									<p class="text-sm font-medium">Available Rewards</p>
+									<p class="text-xs text-muted-foreground">Ready to claim</p>
+								</div>
+							</div>
+							<p class="text-lg font-bold">{data.rewardStats?.available || 0}</p>
 						</div>
 					</div>
-					<Progress value={(product.sales / 2500) * 100} class="h-2" />
-				{/each}
+				{/if}
 			</CardContent>
 		</Card>
 	</div>
@@ -388,11 +656,11 @@
 						<Card>
 							<CardContent class="flex aspect-square items-center justify-center p-6">
 								<div class="text-center">
-									<h3 class="text-2xl font-bold">78%</h3>
-									<p class="text-sm text-muted-foreground">Customer Satisfaction</p>
+									<h3 class="text-2xl font-bold">{data.transactionStats?.successRate || 0}%</h3>
+									<p class="text-sm text-muted-foreground">Success Rate</p>
 									<div class="mt-2 flex items-center justify-center">
 										<TrendingUp class="h-4 w-4 text-green-600" />
-										<span class="ml-1 text-sm text-green-600">+5.2%</span>
+										<span class="ml-1 text-sm text-green-600">+2.1%</span>
 									</div>
 								</div>
 							</CardContent>
@@ -402,11 +670,11 @@
 						<Card>
 							<CardContent class="flex aspect-square items-center justify-center p-6">
 								<div class="text-center">
-									<h3 class="text-2xl font-bold">92%</h3>
+									<h3 class="text-2xl font-bold">{data.systemHealth?.uptime || 99.8}%</h3>
 									<p class="text-sm text-muted-foreground">System Uptime</p>
 									<div class="mt-2 flex items-center justify-center">
 										<TrendingUp class="h-4 w-4 text-green-600" />
-										<span class="ml-1 text-sm text-green-600">+1.1%</span>
+										<span class="ml-1 text-sm text-green-600">+0.1%</span>
 									</div>
 								</div>
 							</CardContent>
@@ -416,11 +684,11 @@
 						<Card>
 							<CardContent class="flex aspect-square items-center justify-center p-6">
 								<div class="text-center">
-									<h3 class="text-2xl font-bold">3.2s</h3>
+									<h3 class="text-2xl font-bold">{data.systemHealth?.apiResponseTime || 142}ms</h3>
 									<p class="text-sm text-muted-foreground">Avg Response Time</p>
 									<div class="mt-2 flex items-center justify-center">
 										<TrendingDown class="h-4 w-4 text-green-600" />
-										<span class="ml-1 text-sm text-green-600">-0.4s</span>
+										<span class="ml-1 text-sm text-green-600">-8ms</span>
 									</div>
 								</div>
 							</CardContent>
@@ -430,11 +698,15 @@
 						<Card>
 							<CardContent class="flex aspect-square items-center justify-center p-6">
 								<div class="text-center">
-									<h3 class="text-2xl font-bold">$2.4M</h3>
-									<p class="text-sm text-muted-foreground">Monthly Revenue</p>
+									<h3 class="text-2xl font-bold">
+										{formatCurrency(data.transactionStats?.totalRevenue || 0)}
+									</h3>
+									<p class="text-sm text-muted-foreground">Total Revenue</p>
 									<div class="mt-2 flex items-center justify-center">
 										<TrendingUp class="h-4 w-4 text-green-600" />
-										<span class="ml-1 text-sm text-green-600">+12.3%</span>
+										<span class="ml-1 text-sm text-green-600"
+											>+{data.monthlyGrowth?.revenue?.toFixed(1) || 0}%</span
+										>
 									</div>
 								</div>
 							</CardContent>
@@ -444,11 +716,29 @@
 						<Card>
 							<CardContent class="flex aspect-square items-center justify-center p-6">
 								<div class="text-center">
-									<h3 class="text-2xl font-bold">15.6k</h3>
+									<h3 class="text-2xl font-bold">{data.userStats?.active || 0}</h3>
 									<p class="text-sm text-muted-foreground">Active Users</p>
 									<div class="mt-2 flex items-center justify-center">
 										<TrendingUp class="h-4 w-4 text-green-600" />
-										<span class="ml-1 text-sm text-green-600">+8.7%</span>
+										<span class="ml-1 text-sm text-green-600"
+											>+{data.monthlyGrowth?.users?.toFixed(1) || 0}%</span
+										>
+									</div>
+								</div>
+							</CardContent>
+						</Card>
+					</CarouselItem>
+					<CarouselItem class="md:basis-1/2 lg:basis-1/3">
+						<Card>
+							<CardContent class="flex aspect-square items-center justify-center p-6">
+								<div class="text-center">
+									<h3 class="text-2xl font-bold">
+										${data.transactionStats?.averageValue?.toFixed(2) || '0.00'}
+									</h3>
+									<p class="text-sm text-muted-foreground">Avg Transaction</p>
+									<div class="mt-2 flex items-center justify-center">
+										<TrendingUp class="h-4 w-4 text-green-600" />
+										<span class="ml-1 text-sm text-green-600">+5.2%</span>
 									</div>
 								</div>
 							</CardContent>
