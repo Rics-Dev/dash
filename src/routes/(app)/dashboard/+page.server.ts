@@ -258,7 +258,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			recentActivity.push({
 				id: `txn-${t.id}`,
 				type: 'transaction',
-				message: `Transaction ${t.responseCode === '00' ? 'completed' : 'processed'} - $${t.amount?.toFixed(2)}`,
+				message: `Transaction ${t.responseCode === '00' ? 'completed' : 'processed'} - ${t.amount?.toFixed(2)} DZD`,
 				timestamp: t.timestamp,
 				status: t.responseCode === '00' ? 'success' : 'info'
 			});
@@ -290,7 +290,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 				},
 				{
 					title: 'Total Revenue',
-					value: `$${Math.round(totalRevenue).toLocaleString()}`,
+					value: `${Math.round(totalRevenue).toLocaleString()} DZD`,
 					change:
 						revenueGrowthRate > 0
 							? `+${Math.round(revenueGrowthRate * 10) / 10}%`
@@ -363,7 +363,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 				},
 				{
 					title: 'Total Revenue',
-					value: '$0',
+					value: '0 DZD',
 					change: '0%'
 				},
 				{

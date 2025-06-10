@@ -96,9 +96,9 @@
 
 	// Helper functions
 	function formatCurrency(amount: number): string {
-		return new Intl.NumberFormat('en-US', {
+		return new Intl.NumberFormat('ar-DZ', {
 			style: 'currency',
-			currency: 'USD'
+			currency: 'DZD'
 		}).format(amount);
 	}
 
@@ -143,10 +143,10 @@
 
 		// Price ranges
 		const priceRanges = [
-			{ range: '$0-$25', min: 0, max: 25, count: 0, value: 0 },
-			{ range: '$25-$100', min: 25, max: 100, count: 0, value: 0 },
-			{ range: '$100-$500', min: 100, max: 500, count: 0, value: 0 },
-			{ range: '$500+', min: 500, max: Infinity, count: 0, value: 0 }
+			{ range: '0-2500 DZD', min: 0, max: 2500, count: 0, value: 0 },
+			{ range: '2500-10000 DZD', min: 2500, max: 10000, count: 0, value: 0 },
+			{ range: '10000-50000 DZD', min: 10000, max: 50000, count: 0, value: 0 },
+			{ range: '50000+ DZD', min: 50000, max: Infinity, count: 0, value: 0 }
 		];
 
 		articles.forEach((article: Article) => {
@@ -707,15 +707,15 @@
 
 <!-- Article Details Modal -->
 <Dialog.Root open={showDetailsModal} onOpenChange={(open) => !loading && (showDetailsModal = open)}>
-	<Dialog.Content class="sm:max-w-lg">
-		<Dialog.Header>
+	<Dialog.Content class="flex max-h-[85vh] flex-col overflow-hidden sm:max-w-lg">
+		<Dialog.Header class="flex-shrink-0">
 			<Dialog.Title class="flex items-center gap-2">
 				<Package class="h-5 w-5" />
 				Article Details
 			</Dialog.Title>
 		</Dialog.Header>
 		{#if selectedArticle}
-			<div class="space-y-4">
+			<div class="flex-1 space-y-4 overflow-y-auto pr-2">
 				<div class="flex items-center gap-3">
 					<div class="rounded-lg bg-primary/10 p-3">
 						{#if selectedArticle.category.toLowerCase().includes('electronics')}

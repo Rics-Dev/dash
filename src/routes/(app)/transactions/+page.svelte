@@ -231,11 +231,11 @@
 
 		// Transaction amount distribution
 		const amountRanges = [
-			{ range: '$0-$10', min: 0, max: 10, count: 0 },
-			{ range: '$10-$50', min: 10, max: 50, count: 0 },
-			{ range: '$50-$100', min: 50, max: 100, count: 0 },
-			{ range: '$100-$500', min: 100, max: 500, count: 0 },
-			{ range: '$500+', min: 500, max: Infinity, count: 0 }
+			{ range: '0-1000 DZD', min: 0, max: 1000, count: 0 },
+			{ range: '1000-5000 DZD', min: 1000, max: 5000, count: 0 },
+			{ range: '5000-10000 DZD', min: 5000, max: 10000, count: 0 },
+			{ range: '10000-50000 DZD', min: 10000, max: 50000, count: 0 },
+			{ range: '50000+ DZD', min: 50000, max: Infinity, count: 0 }
 		];
 
 		approved.forEach((t: Transaction) => {
@@ -461,9 +461,9 @@
 	});
 
 	function formatAmount(amount: number): string {
-		return new Intl.NumberFormat('en-US', {
+		return new Intl.NumberFormat('ar-DZ', {
 			style: 'currency',
-			currency: 'USD'
+			currency: 'DZD'
 		}).format(amount);
 	}
 
@@ -1367,15 +1367,15 @@
 
 <!-- Enhanced Transaction Details Modal -->
 <Dialog.Root open={showDetailsModal} onOpenChange={(open) => !loading && (showDetailsModal = open)}>
-	<Dialog.Content class="sm:max-w-2xl">
-		<Dialog.Header>
+	<Dialog.Content class="flex max-h-[85vh] flex-col overflow-hidden sm:max-w-2xl">
+		<Dialog.Header class="flex-shrink-0">
 			<Dialog.Title class="flex items-center gap-2">
 				<Receipt class="h-5 w-5" />
 				Transaction Details
 			</Dialog.Title>
 		</Dialog.Header>
 		{#if selectedTransaction}
-			<div class="space-y-6">
+			<div class="flex-1 space-y-6 overflow-y-auto pr-2">
 				<div class="flex items-center justify-between">
 					<h3 class="text-lg font-semibold">{selectedTransaction.referenceNumber}</h3>
 					<Badge variant={getStatusColor(selectedTransaction.responseCode)} class="text-sm">

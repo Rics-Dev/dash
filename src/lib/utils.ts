@@ -6,15 +6,12 @@ export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs));
 }
 
-export type WithoutChild<T> = T extends { child?: any } ? Omit<T, "child"> : T;
-export type WithoutChildren<T> = T extends { children?: any }
-  ? Omit<T, "children">
-  : T;
+export type WithoutChild<T> = T extends { child?: any } ? Omit<T, 'child'> : T;
+export type WithoutChildren<T> = T extends { children?: any } ? Omit<T, 'children'> : T;
 export type WithoutChildrenOrChild<T> = WithoutChildren<WithoutChild<T>>;
 export type WithElementRef<T, U extends HTMLElement = HTMLElement> = T & {
-  ref?: U | null;
+	ref?: U | null;
 };
-
 
 export function handleLoginRedirect(
 	event: RequestEvent,
@@ -22,4 +19,15 @@ export function handleLoginRedirect(
 ) {
 	const redirectTo = event.url.pathname + event.url.search;
 	return `/login?redirectTo=${redirectTo}&message=${message}`;
+}
+
+export function formatCurrency(amount: number): string {
+	return new Intl.NumberFormat('ar-DZ', {
+		style: 'currency',
+		currency: 'DZD'
+	}).format(amount);
+}
+
+export function formatAmount(amount: number): string {
+	return formatCurrency(amount);
 }

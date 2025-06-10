@@ -134,9 +134,9 @@
 	}
 
 	function formatCurrency(amount: number): string {
-		return new Intl.NumberFormat('en-US', {
+		return new Intl.NumberFormat('ar-DZ', {
 			style: 'currency',
-			currency: 'USD'
+			currency: 'DZD'
 		}).format(amount);
 	}
 
@@ -788,20 +788,25 @@
 					{/if}
 				</Tabs.Content>
 
-				<Tabs.Content value="rewards" class="flex-1 overflow-auto p-6 data-[state=active]:flex data-[state=active]:flex-col">
+				<Tabs.Content
+					value="rewards"
+					class="flex-1 overflow-auto p-6 data-[state=active]:flex data-[state=active]:flex-col"
+				>
 					<div class="mb-4 flex items-center gap-2">
 						<Gift class="h-5 w-5" />
 						<h3 class="text-lg font-semibold">Rewards History</h3>
 					</div>
-			
+
 					{@const userId = selectedUser?.id?.toString() ?? ''}
 					{@const rewards = userRewards[userId]}
 					{@const isLoading = loadingUserData[`${userId}-rewards`]}
-					
+
 					{#if isLoading || rewards === undefined}
 						<div class="flex flex-1 items-center justify-center">
 							<div class="text-center">
-								<div class="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+								<div
+									class="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent"
+								></div>
 								<p class="text-muted-foreground">Loading rewards...</p>
 							</div>
 						</div>
@@ -809,14 +814,14 @@
 						<div class="flex flex-1 items-center justify-center">
 							<div class="text-center text-muted-foreground">
 								<Gift class="mx-auto mb-4 h-16 w-16 opacity-30" />
-								<h4 class="text-lg font-medium mb-2">No rewards claimed</h4>
+								<h4 class="mb-2 text-lg font-medium">No rewards claimed</h4>
 								<p class="text-sm">This user hasn't claimed any rewards yet.</p>
 							</div>
 						</div>
 					{:else}
 						<!-- Rewards content remains the same -->
 						<div class="space-y-4">
-							<div class="text-sm text-muted-foreground mb-4">
+							<div class="mb-4 text-sm text-muted-foreground">
 								{rewards.length} reward{rewards.length !== 1 ? 's' : ''} claimed
 							</div>
 							{#each rewards as userReward (userReward.id)}

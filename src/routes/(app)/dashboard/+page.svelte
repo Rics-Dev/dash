@@ -136,9 +136,9 @@
 	let selectedDate = $state(undefined);
 
 	function formatCurrency(amount: number) {
-		return new Intl.NumberFormat('en-US', {
+		return new Intl.NumberFormat('ar-DZ', {
 			style: 'currency',
-			currency: 'USD'
+			currency: 'DZD'
 		}).format(amount);
 	}
 
@@ -389,7 +389,11 @@
 										tickLabelProps: { 'font-size': 12 }
 									},
 									yAxis: {
-										format: (d) => `$${d.toLocaleString()}`,
+										format: (d) =>
+											new Intl.NumberFormat('ar-DZ', {
+												style: 'currency',
+												currency: 'DZD'
+											}).format(d),
 										tickLabelProps: { 'font-size': 12 }
 									}
 								}}
@@ -733,7 +737,7 @@
 							<CardContent class="flex aspect-square items-center justify-center p-6">
 								<div class="text-center">
 									<h3 class="text-2xl font-bold">
-										${data.transactionStats?.averageValue?.toFixed(2) || '0.00'}
+										{formatCurrency(data.transactionStats?.averageValue || 0)}
 									</h3>
 									<p class="text-sm text-muted-foreground">Avg Transaction</p>
 									<div class="mt-2 flex items-center justify-center">

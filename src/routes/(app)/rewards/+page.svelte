@@ -448,15 +448,15 @@
 
 <!-- Reward Details Modal -->
 <Dialog.Root open={showDetailsModal} onOpenChange={(open) => !loading && (showDetailsModal = open)}>
-	<Dialog.Content class="sm:max-w-lg">
-		<Dialog.Header>
+	<Dialog.Content class="flex max-h-[85vh] flex-col overflow-hidden sm:max-w-lg">
+		<Dialog.Header class="flex-shrink-0">
 			<Dialog.Title class="flex items-center gap-2">
 				<Gift class="h-5 w-5" />
 				Reward Details
 			</Dialog.Title>
 		</Dialog.Header>
 		{#if selectedReward}
-			<div class="space-y-4">
+			<div class="flex-1 space-y-4 overflow-y-auto pr-2">
 				<div class="flex items-center justify-between">
 					<h3 class="text-lg font-semibold">{selectedReward.name}</h3>
 					<Badge variant={selectedReward.available ? 'default' : 'secondary'}>
@@ -525,7 +525,7 @@
 						required
 						bind:value={formState.name}
 						disabled={loading}
-						placeholder="e.g., $10 Gift Card"
+						placeholder="e.g., 1000 DZD Gift Card"
 					/>
 					{#if formState.errors.name}
 						<p class="mt-1 text-xs text-red-600">{formState.errors.name}</p>
@@ -569,7 +569,7 @@
 							name="category"
 							bind:value={formState.category}
 							disabled={loading}
-                            required
+							required
 							placeholder="e.g., Electronics, Food & Dining, Shopping..."
 						/>
 						{#if formState.errors.category}
@@ -640,7 +640,7 @@
 						required
 						bind:value={formState.name}
 						disabled={loading}
-						placeholder="e.g., $10 Gift Card"
+						placeholder="e.g., 1000 DZD Gift Card"
 					/>
 					{#if formState.errors.name}
 						<p class="mt-1 text-xs text-red-600">{formState.errors.name}</p>
@@ -684,7 +684,7 @@
 							name="category"
 							bind:value={formState.category}
 							disabled={loading}
-                            required
+							required
 							placeholder="e.g., Electronics, Food & Dining, Shopping..."
 						/>
 						{#if formState.errors.category}
