@@ -667,9 +667,9 @@
 							<span class="text-muted-foreground">vs last week</span>
 						</div>
 					</div>
-					<div class="rounded-full bg-blue-500/10 p-3">
+					<!-- <div class="rounded-full bg-blue-500/10 p-3">
 						<DollarSign class="h-6 w-6 text-blue-600" />
-					</div>
+					</div> -->
 				</div>
 			</CardContent>
 		</Card>
@@ -706,9 +706,6 @@
 							<Activity class="h-3 w-3" />
 							<span>Today: {formatAmount(transactionAnalytics.todaysAvgValue)}</span>
 						</div>
-					</div>
-					<div class="rounded-full bg-orange-500/10 p-3">
-						<Receipt class="h-6 w-6 text-orange-600" />
 					</div>
 				</div>
 			</CardContent>

@@ -348,9 +348,6 @@
 							{analytics().totalArticles} articles
 						</p>
 					</div>
-					<div class="rounded-full bg-blue-500/10 p-3">
-						<DollarSign class="h-6 w-6 text-blue-600" />
-					</div>
 				</div>
 			</CardContent>
 		</Card>
@@ -366,9 +363,6 @@
 								analytics().highestPrice
 							)}
 						</p>
-					</div>
-					<div class="rounded-full bg-green-500/10 p-3">
-						<Target class="h-6 w-6 text-green-600" />
 					</div>
 				</div>
 			</CardContent>
@@ -599,7 +593,6 @@
 								</TableCell>
 								<TableCell>
 									<div class="flex items-center gap-1">
-										<DollarSign class="h-4 w-4 text-green-600" />
 										<span class="font-semibold">{formatCurrency(article.price)}</span>
 									</div>
 								</TableCell>
