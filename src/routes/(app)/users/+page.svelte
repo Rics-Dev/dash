@@ -21,6 +21,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Avatar, AvatarFallback } from '$lib/components/ui/avatar';
 	import { Separator } from '$lib/components/ui/separator';
+	import { Progress } from '$lib/components/ui/progress';
 	import { toast } from 'svelte-sonner';
 	import {
 		Search,
@@ -34,7 +35,17 @@
 		CreditCard,
 		X,
 		Calendar,
-		DollarSign
+		DollarSign,
+		BarChart3,
+		PieChart,
+		Target,
+		Layers,
+		TrendingUp,
+		Award,
+		Activity,
+		UserCheck,
+		UserX,
+		Shield
 	} from 'lucide-svelte';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
@@ -139,6 +150,163 @@
 			currency: 'DZD'
 		}).format(amount);
 	}
+
+	// Helper functions for analytics
+	function getTotalLoyaltyPoints() {
+		return users.reduce((total: number, user: User) => total + (user.loyaltyPoints || 0), 0);
+	}
+
+	function getAverageLoyaltyPoints() {
+		if (users.length === 0) return 0;
+		return getTotalLoyaltyPoints() / users.length;
+	}
+
+	function getUniqueRoles() {
+		return [...new Set(users.map((user: User) => user.role || 'user'))];
+	}
+
+	// Analytics
+	let analytics = $derived(() => {
+		const now = new Date();
+		const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+		const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+		const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+		// Role analysis
+		const roleGroups = users.reduce((acc: Record<string, User[]>, user: User) => {
+			const role = user.role || 'user';
+			if (!acc[role]) acc[role] = [];
+			acc[role].push(user);
+			return acc;
+		}, {});
+
+		const roleData = (Object.entries(roleGroups) as [string, User[]][])
+			.map(([role, usersInRole]: [string, User[]]) => ({
+				role,
+				count: usersInRole.length,
+				totalPoints: usersInRole.reduce(
+					(sum: number, user: User) => sum + (user.loyaltyPoints || 0),
+					0
+				),
+				avgPoints:
+					usersInRole.length > 0
+						? usersInRole.reduce((sum: number, user: User) => sum + (user.loyaltyPoints || 0), 0) /
+							usersInRole.length
+						: 0,
+				enabledCount: usersInRole.filter((u: User) => u.enabled !== false).length,
+				adminCount: usersInRole.filter((u: User) => u.role === 'admin').length
+			}))
+			.sort((a, b) => b.count - a.count);
+
+		// Points ranges
+		const pointRanges = [
+			{ range: '0-100 Points', min: 0, max: 100, count: 0, users: 0 },
+			{ range: '100-500 Points', min: 100, max: 500, count: 0, users: 0 },
+			{ range: '500-1000 Points', min: 500, max: 1000, count: 0, users: 0 },
+			{ range: '1000-5000 Points', min: 1000, max: 5000, count: 0, users: 0 },
+			{ range: '5000+ Points', min: 5000, max: Infinity, count: 0, users: 0 }
+		];
+
+		users.forEach((user: User) => {
+			const points = user.loyaltyPoints || 0;
+			const range = pointRanges.find((r) => points >= r.min && points < r.max);
+			if (range) {
+				range.count += points;
+				range.users++;
+			}
+		});
+
+		// Top users by points
+		const topUsers = [...users]
+			.sort((a, b) => (b.loyaltyPoints || 0) - (a.loyaltyPoints || 0))
+			.slice(0, 5);
+
+		// Activity analysis (based on creation and last login dates)
+		const newUsersThisMonth = users.filter((user: User) => {
+			const createdDate = new Date(user.created_at || '');
+			return createdDate >= monthAgo;
+		}).length;
+
+		const newUsersThisWeek = users.filter((user: User) => {
+			const createdDate = new Date(user.created_at || '');
+			return createdDate >= weekAgo;
+		}).length;
+
+		const newUsersToday = users.filter((user: User) => {
+			const createdDate = new Date(user.created_at || '');
+			return createdDate >= dayAgo;
+		}).length;
+
+		// Active users (those who have logged in recently)
+		const activeUsersThisMonth = users.filter((user: User) => {
+			const lastLogin = new Date(user.last_login || user.created_at || '');
+			return lastLogin >= monthAgo;
+		}).length;
+
+		const activeUsersThisWeek = users.filter((user: User) => {
+			const lastLogin = new Date(user.last_login || user.created_at || '');
+			return lastLogin >= weekAgo;
+		}).length;
+
+		// Status analysis
+		const enabledUsers = users.filter((user: User) => user.enabled !== false).length;
+		const disabledUsers = users.length - enabledUsers;
+		const enabledRate = users.length > 0 ? (enabledUsers / users.length) * 100 : 0;
+
+		// Role with most users
+		const topRole = roleData.length > 0 ? roleData[0] : null;
+
+		// Registration trends (last 30 days)
+		const registrationTrends = [];
+		for (let i = 29; i >= 0; i--) {
+			const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+			const dayStart = new Date(date.setHours(0, 0, 0, 0));
+			const dayEnd = new Date(date.setHours(23, 59, 59, 999));
+
+			const dayRegistrations = users.filter((user: User) => {
+				const createdDate = new Date(user.created_at || '');
+				return createdDate >= dayStart && createdDate <= dayEnd;
+			});
+
+			registrationTrends.push({
+				date: dayStart.toISOString().split('T')[0],
+				dateLabel: dayStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+				registrations: dayRegistrations.length,
+				totalPoints: dayRegistrations.reduce(
+					(sum: number, user: User) => sum + (user.loyaltyPoints || 0),
+					0
+				)
+			});
+		}
+
+		return {
+			totalUsers: users.length,
+			totalLoyaltyPoints: getTotalLoyaltyPoints(),
+			averageLoyaltyPoints: getAverageLoyaltyPoints(),
+			rolesCount: Object.keys(roleGroups).length,
+			roleData,
+			pointRanges,
+			topUsers,
+			topRole,
+			newUsersThisMonth,
+			newUsersThisWeek,
+			newUsersToday,
+			activeUsersThisMonth,
+			activeUsersThisWeek,
+			enabledUsers,
+			disabledUsers,
+			enabledRate,
+			registrationTrends,
+			// Additional metrics
+			highestPoints:
+				users.length > 0 ? Math.max(...users.map((u: User) => u.loyaltyPoints || 0)) : 0,
+			lowestPoints:
+				users.length > 0 ? Math.min(...users.map((u: User) => u.loyaltyPoints || 0)) : 0,
+			adminCount: users.filter((u: User) => u.role === 'admin').length,
+			managerCount: users.filter((u: User) => u.role === 'manager').length,
+			regularUserCount: users.filter((u: User) => !u.role || u.role === 'user').length
+		};
+	});
 
 	// Modal handlers
 	function openAddModal() {
@@ -370,11 +538,13 @@
 	<div class="flex items-center justify-between">
 		<div class="flex items-center gap-3">
 			<div class="rounded-lg bg-primary/10 p-2">
-				<Users class="h-6 w-6 text-primary" />
+				<BarChart3 class="h-6 w-6 text-primary" />
 			</div>
 			<div>
-				<h1 class="text-3xl font-bold tracking-tight">User Management</h1>
-				<p class="text-muted-foreground">Manage users, roles, and permissions</p>
+				<h1 class="text-3xl font-bold tracking-tight">User Analytics</h1>
+				<p class="text-muted-foreground">
+					Comprehensive insights into user data, activity, and engagement
+				</p>
 			</div>
 		</div>
 		<Button onclick={openAddModal} disabled={loading} class="gap-2">
@@ -383,14 +553,184 @@
 		</Button>
 	</div>
 
-	<Card>
-		<CardContent class="p-6">
-			<div class="flex items-center gap-2">
-				<Users class="h-5 w-5 text-muted-foreground" />
-				<div>
-					<p class="text-sm font-medium text-muted-foreground">Total Users</p>
-					<p class="text-2xl font-bold">{users.length}</p>
+	<!-- Analytics Cards -->
+	<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+		<Card class="border-l-4 border-l-blue-500">
+			<CardContent class="p-6">
+				<div class="flex items-center gap-3">
+					<div class="rounded-lg bg-blue-50 p-3">
+						<Users class="h-6 w-6 text-blue-600" />
+					</div>
+					<div>
+						<p class="text-sm font-medium text-muted-foreground">Total Users</p>
+						<p class="text-2xl font-bold">{analytics().totalUsers.toLocaleString()}</p>
+						<p class="text-xs text-muted-foreground">
+							+{analytics().newUsersThisMonth} this month
+						</p>
+					</div>
 				</div>
+			</CardContent>
+		</Card>
+
+		<Card class="border-l-4 border-l-green-500">
+			<CardContent class="p-6">
+				<div class="flex items-center gap-3">
+					<div class="rounded-lg bg-green-50 p-3">
+						<Target class="h-6 w-6 text-green-600" />
+					</div>
+					<div>
+						<p class="text-sm font-medium text-muted-foreground">Avg. Loyalty Points</p>
+						<p class="text-2xl font-bold">
+							{Math.round(analytics().averageLoyaltyPoints).toLocaleString()}
+						</p>
+						<p class="text-xs text-muted-foreground">
+							Total: {analytics().totalLoyaltyPoints.toLocaleString()}
+						</p>
+					</div>
+				</div>
+			</CardContent>
+		</Card>
+
+		<Card class="border-l-4 border-l-orange-500">
+			<CardContent class="p-6">
+				<div class="flex items-center gap-3">
+					<div class="rounded-lg bg-orange-50 p-3">
+						<Activity class="h-6 w-6 text-orange-600" />
+					</div>
+					<div>
+						<p class="text-sm font-medium text-muted-foreground">Active Users</p>
+						<p class="text-2xl font-bold">{analytics().activeUsersThisMonth}</p>
+						<p class="text-xs text-muted-foreground">Last 30 days</p>
+					</div>
+				</div>
+			</CardContent>
+		</Card>
+
+		<Card class="border-l-4 border-l-purple-500">
+			<CardContent class="p-6">
+				<div class="flex items-center gap-3">
+					<div class="rounded-lg bg-purple-50 p-3">
+						<UserCheck class="h-6 w-6 text-purple-600" />
+					</div>
+					<div>
+						<p class="text-sm font-medium text-muted-foreground">Enabled Rate</p>
+						<p class="text-2xl font-bold">{analytics().enabledRate.toFixed(1)}%</p>
+						<p class="text-xs text-muted-foreground">
+							{analytics().enabledUsers} of {analytics().totalUsers} users
+						</p>
+					</div>
+				</div>
+			</CardContent>
+		</Card>
+	</div>
+
+	<!-- Role Breakdown and Points Distribution -->
+	<div class="grid gap-6 md:grid-cols-2">
+		<Card>
+			<CardHeader class="pb-3">
+				<div class="flex items-center gap-2">
+					<PieChart class="h-5 w-5 text-muted-foreground" />
+					<CardTitle class="text-lg">Role Breakdown</CardTitle>
+				</div>
+			</CardHeader>
+			<CardContent class="space-y-4">
+				{#each analytics().roleData as role}
+					<div class="flex items-center justify-between">
+						<div class="flex items-center gap-3">
+							<div class="flex items-center gap-2">
+								<Badge variant={getRoleBadgeVariant(role.role)} class="text-xs">
+									{role.role}
+								</Badge>
+								<span class="text-sm text-muted-foreground">
+									{role.count} users
+								</span>
+							</div>
+						</div>
+						<div class="text-right">
+							<p class="text-sm font-medium">{role.totalPoints.toLocaleString()} pts</p>
+							<p class="text-xs text-muted-foreground">
+								{role.enabledCount} enabled
+							</p>
+						</div>
+					</div>
+				{/each}
+			</CardContent>
+		</Card>
+
+		<Card>
+			<CardHeader class="pb-3">
+				<div class="flex items-center gap-2">
+					<BarChart3 class="h-5 w-5 text-muted-foreground" />
+					<CardTitle class="text-lg">Points Distribution</CardTitle>
+				</div>
+			</CardHeader>
+			<CardContent class="space-y-4">
+				{#each analytics().pointRanges as range}
+					<div class="space-y-2">
+						<div class="flex items-center justify-between text-sm">
+							<span class="font-medium">{range.range}</span>
+							<span class="text-muted-foreground">{range.users} users</span>
+						</div>
+						<Progress
+							value={analytics().totalUsers > 0 ? (range.users / analytics().totalUsers) * 100 : 0}
+							class="h-2"
+						/>
+						<div class="flex justify-between text-xs text-muted-foreground">
+							<span>{range.count.toLocaleString()} total points</span>
+							<span
+								>{analytics().totalUsers > 0
+									? ((range.users / analytics().totalUsers) * 100).toFixed(1)
+									: 0}%</span
+							>
+						</div>
+					</div>
+				{/each}
+			</CardContent>
+		</Card>
+	</div>
+
+	<!-- Top Users -->
+	<Card>
+		<CardHeader class="pb-3">
+			<div class="flex items-center gap-2">
+				<Award class="h-5 w-5 text-muted-foreground" />
+				<CardTitle class="text-lg">Top Users by Points</CardTitle>
+			</div>
+		</CardHeader>
+		<CardContent>
+			<div class="space-y-4">
+				{#each analytics().topUsers as user, index}
+					<div class="flex items-center gap-4 rounded-lg border p-4">
+						<div
+							class="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary"
+						>
+							{index + 1}
+						</div>
+						<Avatar class="h-10 w-10">
+							<AvatarFallback>{getInitials(user.username)}</AvatarFallback>
+						</Avatar>
+						<div class="flex-1">
+							<div class="flex items-center gap-2">
+								<p class="font-medium">{user.username}</p>
+								<Badge variant={getRoleBadgeVariant(user.role)} class="text-xs">
+									{user.role || 'User'}
+								</Badge>
+								{#if user.enabled !== false}
+									<Badge variant="default" class="text-xs">Active</Badge>
+								{:else}
+									<Badge variant="secondary" class="text-xs">Inactive</Badge>
+								{/if}
+							</div>
+							<p class="text-sm text-muted-foreground">{user.email}</p>
+						</div>
+						<div class="text-right">
+							<p class="text-lg font-bold text-primary">
+								{(user.loyaltyPoints || 0).toLocaleString()}
+							</p>
+							<p class="text-xs text-muted-foreground">points</p>
+						</div>
+					</div>
+				{/each}
 			</div>
 		</CardContent>
 	</Card>

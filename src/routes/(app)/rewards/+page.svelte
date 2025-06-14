@@ -20,6 +20,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Separator } from '$lib/components/ui/separator';
 	import { Textarea } from '$lib/components/ui/textarea';
+	import { Progress } from '$lib/components/ui/progress';
 	import { toast } from 'svelte-sonner';
 	import {
 		Search,
@@ -31,7 +32,15 @@
 		Package,
 		CheckCircle,
 		XCircle,
-		Eye
+		Eye,
+		BarChart3,
+		PieChart,
+		Target,
+		Layers,
+		TrendingUp,
+		Award,
+		Users,
+		Activity
 	} from 'lucide-svelte';
 
 	let { data } = $props();
@@ -92,6 +101,108 @@
 	function formatPoints(points: number): string {
 		return new Intl.NumberFormat('en-US').format(points);
 	}
+
+	// Helper functions
+	function getUniqueCategories() {
+		return [...new Set(rewards.map((reward: Reward) => reward.category))];
+	}
+
+	function getTotalPointsRequired() {
+		return rewards.reduce(
+			(total: number, reward: Reward) => total + (reward.pointsRequired || 0),
+			0
+		);
+	}
+
+	function getAveragePointsRequired() {
+		if (rewards.length === 0) return 0;
+		return getTotalPointsRequired() / rewards.length;
+	}
+
+	// Analytics
+	let analytics = $derived(() => {
+		// Category analysis
+		const categoryGroups = rewards.reduce((acc: Record<string, Reward[]>, reward: Reward) => {
+			const category = reward.category || 'Uncategorized';
+			if (!acc[category]) acc[category] = [];
+			acc[category].push(reward);
+			return acc;
+		}, {});
+
+		const categoryData = (Object.entries(categoryGroups) as [string, Reward[]][])
+			.map(([category, rewardsInCategory]: [string, Reward[]]) => ({
+				category,
+				count: rewardsInCategory.length,
+				totalPoints: rewardsInCategory.reduce(
+					(sum: number, reward: Reward) => sum + (reward.pointsRequired || 0),
+					0
+				),
+				avgPoints:
+					rewardsInCategory.length > 0
+						? rewardsInCategory.reduce(
+								(sum: number, reward: Reward) => sum + (reward.pointsRequired || 0),
+								0
+							) / rewardsInCategory.length
+						: 0,
+				availableCount: rewardsInCategory.filter((r: Reward) => r.available).length
+			}))
+			.sort((a, b) => b.totalPoints - a.totalPoints);
+
+		// Points ranges
+		const pointRanges = [
+			{ range: '0-100 Points', min: 0, max: 100, count: 0, value: 0 },
+			{ range: '100-500 Points', min: 100, max: 500, count: 0, value: 0 },
+			{ range: '500-1000 Points', min: 500, max: 1000, count: 0, value: 0 },
+			{ range: '1000-5000 Points', min: 1000, max: 5000, count: 0, value: 0 },
+			{ range: '5000+ Points', min: 5000, max: Infinity, count: 0, value: 0 }
+		];
+
+		rewards.forEach((reward: Reward) => {
+			const points = reward.pointsRequired || 0;
+			const range = pointRanges.find((r) => points >= r.min && points < r.max);
+			if (range) {
+				range.count++;
+				range.value += points;
+			}
+		});
+
+		// Top rewards by points
+		const topRewards = [...rewards]
+			.sort((a, b) => (b.pointsRequired || 0) - (a.pointsRequired || 0))
+			.slice(0, 5);
+
+		// Category with highest total points
+		const topCategory = categoryData.length > 0 ? categoryData[0] : null;
+
+		// Most popular category (by count)
+		const popularCategory =
+			categoryData.length > 0 ? [...categoryData].sort((a, b) => b.count - a.count)[0] : null;
+
+		// Available vs unavailable analysis
+		const availableCount = rewards.filter((r: Reward) => r.available).length;
+		const unavailableCount = rewards.length - availableCount;
+		const availabilityRate = rewards.length > 0 ? (availableCount / rewards.length) * 100 : 0;
+
+		return {
+			totalRewards: rewards.length,
+			totalPointsRequired: getTotalPointsRequired(),
+			averagePointsRequired: getAveragePointsRequired(),
+			categoriesCount: Object.keys(categoryGroups).length,
+			categoryData,
+			pointRanges,
+			topRewards,
+			topCategory,
+			popularCategory,
+			availableCount,
+			unavailableCount,
+			availabilityRate,
+			// Additional metrics
+			highestPoints:
+				rewards.length > 0 ? Math.max(...rewards.map((r: Reward) => r.pointsRequired || 0)) : 0,
+			lowestPoints:
+				rewards.length > 0 ? Math.min(...rewards.map((r: Reward) => r.pointsRequired || 0)) : 0
+		};
+	});
 
 	// Modal handlers
 	function openAddModal() {
@@ -213,11 +324,11 @@
 	<div class="flex items-center justify-between">
 		<div class="flex items-center gap-3">
 			<div class="rounded-lg bg-primary/10 p-2">
-				<Gift class="h-6 w-6 text-primary" />
+				<BarChart3 class="h-6 w-6 text-primary" />
 			</div>
 			<div>
-				<h1 class="text-3xl font-bold tracking-tight">Rewards Management</h1>
-				<p class="text-muted-foreground">Manage loyalty rewards and redemption options</p>
+				<h1 class="text-3xl font-bold tracking-tight">Rewards Analytics</h1>
+				<p class="text-muted-foreground">Loyalty program insights and reward management</p>
 			</div>
 		</div>
 		<Button onclick={openAddModal} disabled={loading} class="gap-2">
@@ -225,6 +336,199 @@
 			Add Reward
 		</Button>
 	</div>
+
+	<!-- Analytics Cards -->
+	<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+		<Card class="border-l-4 border-l-blue-500">
+			<CardContent class="p-6">
+				<div class="flex items-center justify-between">
+					<div>
+						<p class="text-sm font-medium text-muted-foreground">Total Points Pool</p>
+						<p class="text-2xl font-bold">{formatPoints(analytics().totalPointsRequired)}</p>
+						<p class="text-xs text-muted-foreground">
+							{analytics().totalRewards} rewards
+						</p>
+					</div>
+					<div class="rounded-full bg-blue-500/10 p-3">
+						<Star class="h-6 w-6 text-blue-600" />
+					</div>
+				</div>
+			</CardContent>
+		</Card>
+
+		<Card class="border-l-4 border-l-green-500">
+			<CardContent class="p-6">
+				<div class="flex items-center justify-between">
+					<div>
+						<p class="text-sm font-medium text-muted-foreground">Average Points</p>
+						<p class="text-2xl font-bold">
+							{formatPoints(Math.round(analytics().averagePointsRequired))}
+						</p>
+						<p class="text-xs text-muted-foreground">
+							Range: {formatPoints(analytics().lowestPoints)} - {formatPoints(
+								analytics().highestPoints
+							)}
+						</p>
+					</div>
+					<div class="rounded-full bg-green-500/10 p-3">
+						<Target class="h-6 w-6 text-green-600" />
+					</div>
+				</div>
+			</CardContent>
+		</Card>
+
+		<Card class="border-l-4 border-l-orange-500">
+			<CardContent class="p-6">
+				<div class="flex items-center justify-between">
+					<div>
+						<p class="text-sm font-medium text-muted-foreground">Categories</p>
+						<p class="text-2xl font-bold">{analytics().categoriesCount}</p>
+						<p class="text-xs text-orange-600">
+							{analytics().popularCategory
+								? `Top: ${analytics().popularCategory?.category}`
+								: 'No categories'}
+						</p>
+					</div>
+					<div class="rounded-full bg-orange-500/10 p-3">
+						<Layers class="h-6 w-6 text-orange-600" />
+					</div>
+				</div>
+			</CardContent>
+		</Card>
+
+		<Card class="border-l-4 border-l-purple-500">
+			<CardContent class="p-6">
+				<div class="flex items-center justify-between">
+					<div>
+						<p class="text-sm font-medium text-muted-foreground">Availability Rate</p>
+						<p class="text-2xl font-bold">{analytics().availabilityRate.toFixed(1)}%</p>
+						<p class="text-xs text-muted-foreground">
+							{analytics().availableCount} of {analytics().totalRewards} available
+						</p>
+					</div>
+					<div class="rounded-full bg-purple-500/10 p-3">
+						<Activity class="h-6 w-6 text-purple-600" />
+					</div>
+				</div>
+			</CardContent>
+		</Card>
+	</div>
+
+	<!-- Category Analysis & Points Distribution -->
+	<div class="grid gap-4 md:grid-cols-2">
+		<Card>
+			<CardHeader>
+				<CardTitle class="flex items-center gap-2">
+					<PieChart class="h-4 w-4" />
+					Category Breakdown
+				</CardTitle>
+			</CardHeader>
+			<CardContent>
+				{#if analytics().categoryData.length > 0}
+					<div class="space-y-3">
+						{#each analytics().categoryData.slice(0, 6) as category}
+							<div class="flex items-center justify-between">
+								<div class="flex items-center gap-2">
+									<div class="h-3 w-3 rounded-full bg-primary/20"></div>
+									<span class="text-sm font-medium">{category.category}</span>
+									<Badge variant="secondary" class="text-xs">{category.count}</Badge>
+								</div>
+								<div class="text-right">
+									<span class="text-sm font-semibold">{formatPoints(category.totalPoints)}</span>
+									<div class="text-xs text-muted-foreground">
+										{category.availableCount} available
+									</div>
+								</div>
+							</div>
+						{/each}
+					</div>
+				{:else}
+					<p class="py-4 text-center text-muted-foreground">No categories to display</p>
+				{/if}
+			</CardContent>
+		</Card>
+
+		<Card>
+			<CardHeader>
+				<CardTitle class="flex items-center gap-2">
+					<BarChart3 class="h-4 w-4" />
+					Points Distribution
+				</CardTitle>
+			</CardHeader>
+			<CardContent>
+				<div class="space-y-3">
+					{#each analytics().pointRanges as range}
+						<div class="space-y-1">
+							<div class="flex items-center justify-between text-sm">
+								<span>{range.range}</span>
+								<span class="font-medium">{range.count} rewards</span>
+							</div>
+							<div class="flex items-center gap-2">
+								<div class="h-2 flex-1 rounded-full bg-muted">
+									<div
+										class="h-2 rounded-full bg-primary transition-all"
+										style="width: {analytics().totalRewards > 0
+											? (range.count / analytics().totalRewards) * 100
+											: 0}%"
+									></div>
+								</div>
+								<span class="min-w-16 text-xs text-muted-foreground">
+									{formatPoints(range.value)}
+								</span>
+							</div>
+						</div>
+					{/each}
+				</div>
+			</CardContent>
+		</Card>
+	</div>
+
+	<!-- Top Rewards -->
+	{#if analytics().topRewards.length > 0}
+		<Card>
+			<CardHeader>
+				<CardTitle class="flex items-center gap-2">
+					<Award class="h-4 w-4" />
+					Highest Point Rewards
+				</CardTitle>
+			</CardHeader>
+			<CardContent>
+				<div class="space-y-3">
+					{#each analytics().topRewards as reward, index}
+						<div class="flex items-center gap-3 rounded-lg bg-muted/30 p-3">
+							<div
+								class="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary"
+							>
+								{index + 1}
+							</div>
+							<div class="flex-1">
+								<p class="font-medium">{reward.name}</p>
+								<div class="flex items-center gap-2">
+									<Badge variant="secondary" class="text-xs">{reward.category}</Badge>
+									<Badge variant={reward.available ? 'default' : 'secondary'} class="text-xs">
+										{reward.available ? 'Available' : 'Unavailable'}
+									</Badge>
+								</div>
+							</div>
+							<div class="text-right">
+								<div class="flex items-center gap-1">
+									<Star class="h-4 w-4 text-yellow-500" />
+									<span class="font-semibold">{formatPoints(reward.pointsRequired || 0)}</span>
+								</div>
+								{#if reward.description}
+									<p class="text-xs text-muted-foreground">
+										{reward.description.length > 30
+											? reward.description.substring(0, 30) + '...'
+											: reward.description}
+									</p>
+								{/if}
+							</div>
+						</div>
+					{/each}
+				</div>
+			</CardContent>
+		</Card>
+	{/if}
 
 	<!-- Stats Cards -->
 	<div class="grid gap-4 md:grid-cols-3">
