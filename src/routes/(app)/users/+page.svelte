@@ -533,402 +533,410 @@
 
 <Toaster position="top-center" richColors />
 
-<div class="container mx-auto space-y-6 p-6">
-	<!-- Header -->
-	<div class="flex items-center justify-between">
-		<div class="flex items-center gap-3">
-			<div class="rounded-lg bg-primary/10 p-2">
-				<BarChart3 class="h-6 w-6 text-primary" />
+<div class="p-6">
+	<div class="mx-auto max-w-none space-y-6">
+		<!-- Header -->
+		<div class="flex items-center justify-between">
+			<div class="flex items-center gap-3">
+				<div class="rounded-lg bg-primary/10 p-2">
+					<BarChart3 class="h-6 w-6 text-primary" />
+				</div>
+				<div>
+					<h1 class="text-3xl font-bold tracking-tight">User Analytics</h1>
+					<p class="text-muted-foreground">
+						Comprehensive insights into user data, activity, and engagement
+					</p>
+				</div>
 			</div>
-			<div>
-				<h1 class="text-3xl font-bold tracking-tight">User Analytics</h1>
-				<p class="text-muted-foreground">
-					Comprehensive insights into user data, activity, and engagement
-				</p>
-			</div>
+			<Button onclick={openAddModal} disabled={loading} class="gap-2">
+				<Plus class="h-4 w-4" />
+				Add User
+			</Button>
 		</div>
-		<Button onclick={openAddModal} disabled={loading} class="gap-2">
-			<Plus class="h-4 w-4" />
-			Add User
-		</Button>
-	</div>
 
-	<!-- Analytics Cards -->
-	<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-		<Card class="border-l-4 border-l-blue-500">
-			<CardContent class="p-6">
-				<div class="flex items-center gap-3">
-					<div class="rounded-lg bg-blue-50 p-3">
-						<Users class="h-6 w-6 text-blue-600" />
-					</div>
-					<div>
-						<p class="text-sm font-medium text-muted-foreground">Total Users</p>
-						<p class="text-2xl font-bold">{analytics().totalUsers.toLocaleString()}</p>
-						<p class="text-xs text-muted-foreground">
-							+{analytics().newUsersThisMonth} this month
-						</p>
-					</div>
-				</div>
-			</CardContent>
-		</Card>
-
-		<Card class="border-l-4 border-l-green-500">
-			<CardContent class="p-6">
-				<div class="flex items-center gap-3">
-					<div class="rounded-lg bg-green-50 p-3">
-						<Target class="h-6 w-6 text-green-600" />
-					</div>
-					<div>
-						<p class="text-sm font-medium text-muted-foreground">Avg. Loyalty Points</p>
-						<p class="text-2xl font-bold">
-							{Math.round(analytics().averageLoyaltyPoints).toLocaleString()}
-						</p>
-						<p class="text-xs text-muted-foreground">
-							Total: {analytics().totalLoyaltyPoints.toLocaleString()}
-						</p>
-					</div>
-				</div>
-			</CardContent>
-		</Card>
-
-		<Card class="border-l-4 border-l-orange-500">
-			<CardContent class="p-6">
-				<div class="flex items-center gap-3">
-					<div class="rounded-lg bg-orange-50 p-3">
-						<Activity class="h-6 w-6 text-orange-600" />
-					</div>
-					<div>
-						<p class="text-sm font-medium text-muted-foreground">Active Users</p>
-						<p class="text-2xl font-bold">{analytics().activeUsersThisMonth}</p>
-						<p class="text-xs text-muted-foreground">Last 30 days</p>
-					</div>
-				</div>
-			</CardContent>
-		</Card>
-
-		<Card class="border-l-4 border-l-purple-500">
-			<CardContent class="p-6">
-				<div class="flex items-center gap-3">
-					<div class="rounded-lg bg-purple-50 p-3">
-						<UserCheck class="h-6 w-6 text-purple-600" />
-					</div>
-					<div>
-						<p class="text-sm font-medium text-muted-foreground">Enabled Rate</p>
-						<p class="text-2xl font-bold">{analytics().enabledRate.toFixed(1)}%</p>
-						<p class="text-xs text-muted-foreground">
-							{analytics().enabledUsers} of {analytics().totalUsers} users
-						</p>
-					</div>
-				</div>
-			</CardContent>
-		</Card>
-	</div>
-
-	<!-- Role Breakdown and Points Distribution -->
-	<div class="grid gap-6 md:grid-cols-2">
-		<Card>
-			<CardHeader class="pb-3">
-				<div class="flex items-center gap-2">
-					<PieChart class="h-5 w-5 text-muted-foreground" />
-					<CardTitle class="text-lg">Role Breakdown</CardTitle>
-				</div>
-			</CardHeader>
-			<CardContent class="space-y-4">
-				{#each analytics().roleData as role}
-					<div class="flex items-center justify-between">
-						<div class="flex items-center gap-3">
-							<div class="flex items-center gap-2">
-								<Badge variant={getRoleBadgeVariant(role.role)} class="text-xs">
-									{role.role}
-								</Badge>
-								<span class="text-sm text-muted-foreground">
-									{role.count} users
-								</span>
-							</div>
+		<!-- Analytics Cards -->
+		<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+			<Card class="border-l-4 border-l-blue-500">
+				<CardContent class="p-6">
+					<div class="flex items-center gap-3">
+						<div class="rounded-lg bg-blue-50 p-3">
+							<Users class="h-6 w-6 text-blue-600" />
 						</div>
-						<div class="text-right">
-							<p class="text-sm font-medium">{role.totalPoints.toLocaleString()} pts</p>
+						<div>
+							<p class="text-sm font-medium text-muted-foreground">Total Users</p>
+							<p class="text-2xl font-bold">{analytics().totalUsers.toLocaleString()}</p>
 							<p class="text-xs text-muted-foreground">
-								{role.enabledCount} enabled
+								+{analytics().newUsersThisMonth} this month
 							</p>
 						</div>
 					</div>
-				{/each}
-			</CardContent>
-		</Card>
+				</CardContent>
+			</Card>
 
+			<Card class="border-l-4 border-l-green-500">
+				<CardContent class="p-6">
+					<div class="flex items-center gap-3">
+						<div class="rounded-lg bg-green-50 p-3">
+							<Target class="h-6 w-6 text-green-600" />
+						</div>
+						<div>
+							<p class="text-sm font-medium text-muted-foreground">Avg. Loyalty Points</p>
+							<p class="text-2xl font-bold">
+								{Math.round(analytics().averageLoyaltyPoints).toLocaleString()}
+							</p>
+							<p class="text-xs text-muted-foreground">
+								Total: {analytics().totalLoyaltyPoints.toLocaleString()}
+							</p>
+						</div>
+					</div>
+				</CardContent>
+			</Card>
+
+			<Card class="border-l-4 border-l-orange-500">
+				<CardContent class="p-6">
+					<div class="flex items-center gap-3">
+						<div class="rounded-lg bg-orange-50 p-3">
+							<Activity class="h-6 w-6 text-orange-600" />
+						</div>
+						<div>
+							<p class="text-sm font-medium text-muted-foreground">Active Users</p>
+							<p class="text-2xl font-bold">{analytics().activeUsersThisMonth}</p>
+							<p class="text-xs text-muted-foreground">Last 30 days</p>
+						</div>
+					</div>
+				</CardContent>
+			</Card>
+
+			<Card class="border-l-4 border-l-purple-500">
+				<CardContent class="p-6">
+					<div class="flex items-center gap-3">
+						<div class="rounded-lg bg-purple-50 p-3">
+							<UserCheck class="h-6 w-6 text-purple-600" />
+						</div>
+						<div>
+							<p class="text-sm font-medium text-muted-foreground">Enabled Rate</p>
+							<p class="text-2xl font-bold">{analytics().enabledRate.toFixed(1)}%</p>
+							<p class="text-xs text-muted-foreground">
+								{analytics().enabledUsers} of {analytics().totalUsers} users
+							</p>
+						</div>
+					</div>
+				</CardContent>
+			</Card>
+		</div>
+
+		<!-- Role Breakdown and Points Distribution -->
+		<div class="grid gap-6 md:grid-cols-2">
+			<Card>
+				<CardHeader class="pb-3">
+					<div class="flex items-center gap-2">
+						<PieChart class="h-5 w-5 text-muted-foreground" />
+						<CardTitle class="text-lg">Role Breakdown</CardTitle>
+					</div>
+				</CardHeader>
+				<CardContent class="space-y-4">
+					{#each analytics().roleData as role}
+						<div class="flex items-center justify-between">
+							<div class="flex items-center gap-3">
+								<div class="flex items-center gap-2">
+									<Badge variant={getRoleBadgeVariant(role.role)} class="text-xs">
+										{role.role}
+									</Badge>
+									<span class="text-sm text-muted-foreground">
+										{role.count} users
+									</span>
+								</div>
+							</div>
+							<div class="text-right">
+								<p class="text-sm font-medium">{role.totalPoints.toLocaleString()} pts</p>
+								<p class="text-xs text-muted-foreground">
+									{role.enabledCount} enabled
+								</p>
+							</div>
+						</div>
+					{/each}
+				</CardContent>
+			</Card>
+
+			<Card>
+				<CardHeader class="pb-3">
+					<div class="flex items-center gap-2">
+						<BarChart3 class="h-5 w-5 text-muted-foreground" />
+						<CardTitle class="text-lg">Points Distribution</CardTitle>
+					</div>
+				</CardHeader>
+				<CardContent class="space-y-4">
+					{#each analytics().pointRanges as range}
+						<div class="space-y-2">
+							<div class="flex items-center justify-between text-sm">
+								<span class="font-medium">{range.range}</span>
+								<span class="text-muted-foreground">{range.users} users</span>
+							</div>
+							<Progress
+								value={analytics().totalUsers > 0
+									? (range.users / analytics().totalUsers) * 100
+									: 0}
+								class="h-2"
+							/>
+							<div class="flex justify-between text-xs text-muted-foreground">
+								<span>{range.count.toLocaleString()} total points</span>
+								<span
+									>{analytics().totalUsers > 0
+										? ((range.users / analytics().totalUsers) * 100).toFixed(1)
+										: 0}%</span
+								>
+							</div>
+						</div>
+					{/each}
+				</CardContent>
+			</Card>
+		</div>
+
+		<!-- Top Users -->
 		<Card>
 			<CardHeader class="pb-3">
 				<div class="flex items-center gap-2">
-					<BarChart3 class="h-5 w-5 text-muted-foreground" />
-					<CardTitle class="text-lg">Points Distribution</CardTitle>
+					<Award class="h-5 w-5 text-muted-foreground" />
+					<CardTitle class="text-lg">Top Users by Points</CardTitle>
 				</div>
 			</CardHeader>
-			<CardContent class="space-y-4">
-				{#each analytics().pointRanges as range}
-					<div class="space-y-2">
-						<div class="flex items-center justify-between text-sm">
-							<span class="font-medium">{range.range}</span>
-							<span class="text-muted-foreground">{range.users} users</span>
-						</div>
-						<Progress
-							value={analytics().totalUsers > 0 ? (range.users / analytics().totalUsers) * 100 : 0}
-							class="h-2"
-						/>
-						<div class="flex justify-between text-xs text-muted-foreground">
-							<span>{range.count.toLocaleString()} total points</span>
-							<span
-								>{analytics().totalUsers > 0
-									? ((range.users / analytics().totalUsers) * 100).toFixed(1)
-									: 0}%</span
+			<CardContent>
+				<div class="space-y-4">
+					{#each analytics().topUsers as user, index}
+						<div class="flex items-center gap-4 rounded-lg border p-4">
+							<div
+								class="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary"
 							>
-						</div>
-					</div>
-				{/each}
-			</CardContent>
-		</Card>
-	</div>
-
-	<!-- Top Users -->
-	<Card>
-		<CardHeader class="pb-3">
-			<div class="flex items-center gap-2">
-				<Award class="h-5 w-5 text-muted-foreground" />
-				<CardTitle class="text-lg">Top Users by Points</CardTitle>
-			</div>
-		</CardHeader>
-		<CardContent>
-			<div class="space-y-4">
-				{#each analytics().topUsers as user, index}
-					<div class="flex items-center gap-4 rounded-lg border p-4">
-						<div
-							class="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary"
-						>
-							{index + 1}
-						</div>
-						<Avatar class="h-10 w-10">
-							<AvatarFallback>{getInitials(user.username)}</AvatarFallback>
-						</Avatar>
-						<div class="flex-1">
-							<div class="flex items-center gap-2">
-								<p class="font-medium">{user.username}</p>
-								<Badge variant={getRoleBadgeVariant(user.role)} class="text-xs">
-									{user.role || 'User'}
-								</Badge>
-								{#if user.enabled !== false}
-									<Badge variant="default" class="text-xs">Active</Badge>
-								{:else}
-									<Badge variant="secondary" class="text-xs">Inactive</Badge>
-								{/if}
+								{index + 1}
 							</div>
-							<p class="text-sm text-muted-foreground">{user.email}</p>
-						</div>
-						<div class="text-right">
-							<p class="text-lg font-bold text-primary">
-								{(user.loyaltyPoints || 0).toLocaleString()}
-							</p>
-							<p class="text-xs text-muted-foreground">points</p>
-						</div>
-					</div>
-				{/each}
-			</div>
-		</CardContent>
-	</Card>
-
-	<!-- Main Table Card -->
-	<Card>
-		<CardHeader class="pb-4">
-			<div class="flex items-center justify-between">
-				<CardTitle class="text-xl">Users</CardTitle>
-				<div class="flex items-center gap-4">
-					<div class="flex items-center gap-2 text-sm text-muted-foreground">
-						<span>Show</span>
-						<select
-							bind:value={itemsPerPage}
-							class="rounded border bg-transparent px-2 py-1 text-sm"
-							onchange={() => (currentPage = 1)}
-						>
-							<option value={5}>5</option>
-							<option value={10}>10</option>
-							<option value={25}>25</option>
-							<option value={50}>50</option>
-						</select>
-						<span>per page</span>
-					</div>
-					<div class="relative w-72">
-						<Search
-							class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-muted-foreground"
-						/>
-						<Input placeholder="Search users..." bind:value={searchQuery} class="pl-10" />
-					</div>
-				</div>
-			</div>
-		</CardHeader>
-		<CardContent class="p-0">
-			{#if error}
-				<div class="border-b bg-red-50 p-6 text-center text-red-600">
-					{error}
-				</div>
-			{/if}
-
-			{#if filteredUsers.length === 0}
-				<div class="p-12 text-center">
-					<Users class="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-					<p class="text-lg font-medium text-muted-foreground">
-						{searchQuery ? 'No users found' : 'No users yet'}
-					</p>
-					<p class="mt-1 text-sm text-muted-foreground">
-						{searchQuery
-							? 'Try adjusting your search terms'
-							: 'Get started by adding your first user'}
-					</p>
-				</div>
-			{:else}
-				<Table>
-					<TableHeader>
-						<TableRow>
-							<TableHead>User</TableHead>
-							<TableHead>Email</TableHead>
-							<TableHead>Role</TableHead>
-							<TableHead>Loyalty Points</TableHead>
-							<TableHead>Status</TableHead>
-							<TableHead class="text-right">Actions</TableHead>
-						</TableRow>
-					</TableHeader>
-					<TableBody>
-						{#each paginatedUsers as user (user.id)}
-							<TableRow class="group hover:bg-muted/50">
-								<TableCell>
-									<div class="flex items-center gap-3">
-										<Avatar class="h-8 w-8">
-											<AvatarFallback class="text-xs">
-												{getInitials(user.username)}
-											</AvatarFallback>
-										</Avatar>
-										<div>
-											<p class="font-medium">{user.username}</p>
-											<p class="text-sm text-muted-foreground">ID: {user.id}</p>
-										</div>
-									</div>
-								</TableCell>
-								<TableCell>
-									<div class="flex items-center gap-2">
-										<Mail class="h-4 w-4 text-muted-foreground" />
-										{user.email}
-									</div>
-								</TableCell>
-								<TableCell>
-									<Badge variant={getRoleBadgeVariant(user.role)}>
+							<Avatar class="h-10 w-10">
+								<AvatarFallback>{getInitials(user.username)}</AvatarFallback>
+							</Avatar>
+							<div class="flex-1">
+								<div class="flex items-center gap-2">
+									<p class="font-medium">{user.username}</p>
+									<Badge variant={getRoleBadgeVariant(user.role)} class="text-xs">
 										{user.role || 'User'}
 									</Badge>
-								</TableCell>
-								<TableCell>
-									<div class="font-mono text-sm">
-										{(user.loyaltyPoints ?? 0).toLocaleString()}
-									</div>
-								</TableCell>
-								<TableCell>
-									<Badge variant={user.enabled ? 'default' : 'secondary'}>
-										{user.enabled ? 'Active' : 'Inactive'}
-									</Badge>
-								</TableCell>
-								<TableCell class="text-right">
-									<div class="flex items-center justify-end gap-2">
-										<Button
-											size="sm"
-											variant="ghost"
-											onclick={() => openUserDetailsModal(user, 'transactions')}
-											disabled={loading}
-											class="h-8 w-8 p-0"
-											title="View Details"
-										>
-											<Eye class="h-4 w-4" />
-										</Button>
-										<Button
-											size="sm"
-											variant="ghost"
-											onclick={() => openEditModal(user)}
-											disabled={loading}
-											class="h-8 w-8 p-0"
-											title="Edit User"
-										>
-											<Edit2 class="h-4 w-4" />
-										</Button>
-										<Button
-											size="sm"
-											variant="ghost"
-											onclick={() => openDeleteDialog(user.id)}
-											disabled={loading}
-											class="h-8 w-8 p-0 text-red-600 hover:bg-red-50 hover:text-red-700"
-											title="Delete User"
-										>
-											<Trash2 class="h-4 w-4" />
-										</Button>
-									</div>
-								</TableCell>
-							</TableRow>
-						{/each}
-					</TableBody>
-				</Table>
-
-				<!-- Pagination -->
-				{#if totalPages > 1}
-					<div class="flex items-center justify-between border-t px-6 py-4">
-						<div class="text-sm text-muted-foreground">
-							Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(
-								currentPage * itemsPerPage,
-								filteredUsers.length
-							)} of {filteredUsers.length} results
+									{#if user.enabled !== false}
+										<Badge variant="default" class="text-xs">Active</Badge>
+									{:else}
+										<Badge variant="secondary" class="text-xs">Inactive</Badge>
+									{/if}
+								</div>
+								<p class="text-sm text-muted-foreground">{user.email}</p>
+							</div>
+							<div class="text-right">
+								<p class="text-lg font-bold text-primary">
+									{(user.loyaltyPoints || 0).toLocaleString()}
+								</p>
+								<p class="text-xs text-muted-foreground">points</p>
+							</div>
 						</div>
+					{/each}
+				</div>
+			</CardContent>
+		</Card>
 
-						<Pagination.Root count={filteredUsers.length} perPage={itemsPerPage} page={currentPage}>
-							{#snippet children({ pages, currentPage: paginationCurrentPage })}
-								<Pagination.Content>
-									<Pagination.Item>
-										<Pagination.PrevButton
-											onclick={() => {
-												if (currentPage > 1) {
-													currentPage = currentPage - 1;
-												}
-											}}
-										/>
-									</Pagination.Item>
-									{#each pages as page (page.key)}
-										{#if page.type === 'ellipsis'}
-											<Pagination.Item>
-												<Pagination.Ellipsis />
-											</Pagination.Item>
-										{:else}
-											<Pagination.Item>
-												<Pagination.Link
-													{page}
-													isActive={paginationCurrentPage === page.value}
-													onclick={() => {
-														currentPage = page.value;
-													}}
-												>
-													{page.value}
-												</Pagination.Link>
-											</Pagination.Item>
-										{/if}
-									{/each}
-									<Pagination.Item>
-										<Pagination.NextButton
-											onclick={() => {
-												if (currentPage < totalPages) {
-													currentPage = currentPage + 1;
-												}
-											}}
-										/>
-									</Pagination.Item>
-								</Pagination.Content>
-							{/snippet}
-						</Pagination.Root>
+		<!-- Main Table Card -->
+		<Card>
+			<CardHeader class="pb-4">
+				<div class="flex items-center justify-between">
+					<CardTitle class="text-xl">Users</CardTitle>
+					<div class="flex items-center gap-4">
+						<div class="flex items-center gap-2 text-sm text-muted-foreground">
+							<span>Show</span>
+							<select
+								bind:value={itemsPerPage}
+								class="rounded border bg-transparent px-2 py-1 text-sm"
+								onchange={() => (currentPage = 1)}
+							>
+								<option value={5}>5</option>
+								<option value={10}>10</option>
+								<option value={25}>25</option>
+								<option value={50}>50</option>
+							</select>
+							<span>per page</span>
+						</div>
+						<div class="relative w-72">
+							<Search
+								class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-muted-foreground"
+							/>
+							<Input placeholder="Search users..." bind:value={searchQuery} class="pl-10" />
+						</div>
+					</div>
+				</div>
+			</CardHeader>
+			<CardContent class="p-0">
+				{#if error}
+					<div class="border-b bg-red-50 p-6 text-center text-red-600">
+						{error}
 					</div>
 				{/if}
-			{/if}
-		</CardContent>
-	</Card>
+
+				{#if filteredUsers.length === 0}
+					<div class="p-12 text-center">
+						<Users class="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+						<p class="text-lg font-medium text-muted-foreground">
+							{searchQuery ? 'No users found' : 'No users yet'}
+						</p>
+						<p class="mt-1 text-sm text-muted-foreground">
+							{searchQuery
+								? 'Try adjusting your search terms'
+								: 'Get started by adding your first user'}
+						</p>
+					</div>
+				{:else}
+					<Table>
+						<TableHeader>
+							<TableRow>
+								<TableHead>User</TableHead>
+								<TableHead>Email</TableHead>
+								<TableHead>Role</TableHead>
+								<TableHead>Loyalty Points</TableHead>
+								<TableHead>Status</TableHead>
+								<TableHead class="text-right">Actions</TableHead>
+							</TableRow>
+						</TableHeader>
+						<TableBody>
+							{#each paginatedUsers as user (user.id)}
+								<TableRow class="group hover:bg-muted/50">
+									<TableCell>
+										<div class="flex items-center gap-3">
+											<Avatar class="h-8 w-8">
+												<AvatarFallback class="text-xs">
+													{getInitials(user.username)}
+												</AvatarFallback>
+											</Avatar>
+											<div>
+												<p class="font-medium">{user.username}</p>
+												<p class="text-sm text-muted-foreground">ID: {user.id}</p>
+											</div>
+										</div>
+									</TableCell>
+									<TableCell>
+										<div class="flex items-center gap-2">
+											<Mail class="h-4 w-4 text-muted-foreground" />
+											{user.email}
+										</div>
+									</TableCell>
+									<TableCell>
+										<Badge variant={getRoleBadgeVariant(user.role)}>
+											{user.role || 'User'}
+										</Badge>
+									</TableCell>
+									<TableCell>
+										<div class="font-mono text-sm">
+											{(user.loyaltyPoints ?? 0).toLocaleString()}
+										</div>
+									</TableCell>
+									<TableCell>
+										<Badge variant={user.enabled ? 'default' : 'secondary'}>
+											{user.enabled ? 'Active' : 'Inactive'}
+										</Badge>
+									</TableCell>
+									<TableCell class="text-right">
+										<div class="flex items-center justify-end gap-2">
+											<Button
+												size="sm"
+												variant="ghost"
+												onclick={() => openUserDetailsModal(user, 'transactions')}
+												disabled={loading}
+												class="h-8 w-8 p-0"
+												title="View Details"
+											>
+												<Eye class="h-4 w-4" />
+											</Button>
+											<Button
+												size="sm"
+												variant="ghost"
+												onclick={() => openEditModal(user)}
+												disabled={loading}
+												class="h-8 w-8 p-0"
+												title="Edit User"
+											>
+												<Edit2 class="h-4 w-4" />
+											</Button>
+											<Button
+												size="sm"
+												variant="ghost"
+												onclick={() => openDeleteDialog(user.id)}
+												disabled={loading}
+												class="h-8 w-8 p-0 text-red-600 hover:bg-red-50 hover:text-red-700"
+												title="Delete User"
+											>
+												<Trash2 class="h-4 w-4" />
+											</Button>
+										</div>
+									</TableCell>
+								</TableRow>
+							{/each}
+						</TableBody>
+					</Table>
+
+					<!-- Pagination -->
+					{#if totalPages > 1}
+						<div class="flex items-center justify-between border-t px-6 py-4">
+							<div class="text-sm text-muted-foreground">
+								Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(
+									currentPage * itemsPerPage,
+									filteredUsers.length
+								)} of {filteredUsers.length} results
+							</div>
+
+							<Pagination.Root
+								count={filteredUsers.length}
+								perPage={itemsPerPage}
+								page={currentPage}
+							>
+								{#snippet children({ pages, currentPage: paginationCurrentPage })}
+									<Pagination.Content>
+										<Pagination.Item>
+											<Pagination.PrevButton
+												onclick={() => {
+													if (currentPage > 1) {
+														currentPage = currentPage - 1;
+													}
+												}}
+											/>
+										</Pagination.Item>
+										{#each pages as page (page.key)}
+											{#if page.type === 'ellipsis'}
+												<Pagination.Item>
+													<Pagination.Ellipsis />
+												</Pagination.Item>
+											{:else}
+												<Pagination.Item>
+													<Pagination.Link
+														{page}
+														isActive={paginationCurrentPage === page.value}
+														onclick={() => {
+															currentPage = page.value;
+														}}
+													>
+														{page.value}
+													</Pagination.Link>
+												</Pagination.Item>
+											{/if}
+										{/each}
+										<Pagination.Item>
+											<Pagination.NextButton
+												onclick={() => {
+													if (currentPage < totalPages) {
+														currentPage = currentPage + 1;
+													}
+												}}
+											/>
+										</Pagination.Item>
+									</Pagination.Content>
+								{/snippet}
+							</Pagination.Root>
+						</div>
+					{/if}
+				{/if}
+			</CardContent>
+		</Card>
+	</div>
 </div>
 
 <!-- User Details Modal with Tabs -->

@@ -318,384 +318,388 @@
 
 <Toaster position="top-center" richColors />
 
-<div class="container mx-auto space-y-6 p-6">
-	<!-- Header -->
-	<div class="flex items-center justify-between">
-		<div class="flex items-center gap-3">
-			<div class="rounded-lg bg-primary/10 p-2">
-				<BarChart3 class="h-6 w-6 text-primary" />
+<div class="p-6">
+	<div class="mx-auto max-w-none space-y-6">
+		<!-- Header -->
+		<div class="flex items-center justify-between">
+			<div class="flex items-center gap-3">
+				<div class="rounded-lg bg-primary/10 p-2">
+					<BarChart3 class="h-6 w-6 text-primary" />
+				</div>
+				<div>
+					<h1 class="text-3xl font-bold tracking-tight">Articles Analytics</h1>
+					<p class="text-muted-foreground">Catalog insights and inventory management</p>
+				</div>
 			</div>
-			<div>
-				<h1 class="text-3xl font-bold tracking-tight">Articles Analytics</h1>
-				<p class="text-muted-foreground">Catalog insights and inventory management</p>
-			</div>
+			<Button onclick={openAddModal} disabled={loading} class="gap-2">
+				<Plus class="h-4 w-4" />
+				Add Article
+			</Button>
 		</div>
-		<Button onclick={openAddModal} disabled={loading} class="gap-2">
-			<Plus class="h-4 w-4" />
-			Add Article
-		</Button>
-	</div>
 
-	<!-- Analytics Cards -->
-	<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-		<Card class="border-l-4 border-l-blue-500">
-			<CardContent class="p-6">
-				<div class="flex items-center justify-between">
-					<div>
-						<p class="text-sm font-medium text-muted-foreground">Total Catalog Value</p>
-						<p class="text-2xl font-bold">{formatCurrency(analytics().totalValue)}</p>
-						<p class="text-xs text-muted-foreground">
-							{analytics().totalArticles} articles
-						</p>
-					</div>
-				</div>
-			</CardContent>
-		</Card>
-
-		<Card class="border-l-4 border-l-green-500">
-			<CardContent class="p-6">
-				<div class="flex items-center justify-between">
-					<div>
-						<p class="text-sm font-medium text-muted-foreground">Average Price</p>
-						<p class="text-2xl font-bold">{formatCurrency(analytics().averagePrice)}</p>
-						<p class="text-xs text-muted-foreground">
-							Range: {formatCurrency(analytics().lowestPrice)} - {formatCurrency(
-								analytics().highestPrice
-							)}
-						</p>
-					</div>
-				</div>
-			</CardContent>
-		</Card>
-
-		<Card class="border-l-4 border-l-orange-500">
-			<CardContent class="p-6">
-				<div class="flex items-center justify-between">
-					<div>
-						<p class="text-sm font-medium text-muted-foreground">Categories</p>
-						<p class="text-2xl font-bold">{analytics().categoriesCount}</p>
-						<p class="text-xs text-orange-600">
-							{analytics().popularCategory
-								? `Top: ${analytics().popularCategory?.category}`
-								: 'No categories'}
-						</p>
-					</div>
-					<div class="rounded-full bg-orange-500/10 p-3">
-						<Layers class="h-6 w-6 text-orange-600" />
-					</div>
-				</div>
-			</CardContent>
-		</Card>
-
-		<Card class="border-l-4 border-l-purple-500">
-			<CardContent class="p-6">
-				<div class="flex items-center justify-between">
-					<div>
-						<p class="text-sm font-medium text-muted-foreground">Top Category</p>
-						{#if analytics().topCategory}
-							<p class="text-lg font-bold">{analytics().topCategory?.category}</p>
-							<p class="text-sm text-purple-600">
-								{formatCurrency(analytics().topCategory?.totalValue || 0)}
+		<!-- Analytics Cards -->
+		<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+			<Card class="border-l-4 border-l-blue-500">
+				<CardContent class="p-6">
+					<div class="flex items-center justify-between">
+						<div>
+							<p class="text-sm font-medium text-muted-foreground">Total Catalog Value</p>
+							<p class="text-2xl font-bold">{formatCurrency(analytics().totalValue)}</p>
+							<p class="text-xs text-muted-foreground">
+								{analytics().totalArticles} articles
 							</p>
-							<p class="text-xs text-muted-foreground">{analytics().topCategory?.count} items</p>
-						{:else}
-							<p class="text-lg font-bold">-</p>
-							<p class="text-sm text-muted-foreground">No data</p>
-						{/if}
+						</div>
 					</div>
-					<div class="rounded-full bg-purple-500/10 p-3">
-						<Star class="h-6 w-6 text-purple-600" />
-					</div>
-				</div>
-			</CardContent>
-		</Card>
-	</div>
+				</CardContent>
+			</Card>
 
-	<!-- Category Analysis & Price Distribution -->
-	<div class="grid gap-4 md:grid-cols-2">
-		<Card>
-			<CardHeader>
-				<CardTitle class="flex items-center gap-2">
-					<PieChart class="h-4 w-4" />
-					Category Breakdown
-				</CardTitle>
-			</CardHeader>
-			<CardContent>
-				{#if analytics().categoryData.length > 0}
-					<div class="space-y-3">
-						{#each analytics().categoryData.slice(0, 6) as category}
-							<div class="flex items-center justify-between">
-								<div class="flex items-center gap-2">
-									<div class="h-3 w-3 rounded-full bg-primary/20"></div>
-									<span class="text-sm font-medium">{category.category}</span>
-									<Badge variant="secondary" class="text-xs">{category.count}</Badge>
+			<Card class="border-l-4 border-l-green-500">
+				<CardContent class="p-6">
+					<div class="flex items-center justify-between">
+						<div>
+							<p class="text-sm font-medium text-muted-foreground">Average Price</p>
+							<p class="text-2xl font-bold">{formatCurrency(analytics().averagePrice)}</p>
+							<p class="text-xs text-muted-foreground">
+								Range: {formatCurrency(analytics().lowestPrice)} - {formatCurrency(
+									analytics().highestPrice
+								)}
+							</p>
+						</div>
+					</div>
+				</CardContent>
+			</Card>
+
+			<Card class="border-l-4 border-l-orange-500">
+				<CardContent class="p-6">
+					<div class="flex items-center justify-between">
+						<div>
+							<p class="text-sm font-medium text-muted-foreground">Categories</p>
+							<p class="text-2xl font-bold">{analytics().categoriesCount}</p>
+							<p class="text-xs text-orange-600">
+								{analytics().popularCategory
+									? `Top: ${analytics().popularCategory?.category}`
+									: 'No categories'}
+							</p>
+						</div>
+						<div class="rounded-full bg-orange-500/10 p-3">
+							<Layers class="h-6 w-6 text-orange-600" />
+						</div>
+					</div>
+				</CardContent>
+			</Card>
+
+			<Card class="border-l-4 border-l-purple-500">
+				<CardContent class="p-6">
+					<div class="flex items-center justify-between">
+						<div>
+							<p class="text-sm font-medium text-muted-foreground">Top Category</p>
+							{#if analytics().topCategory}
+								<p class="text-lg font-bold">{analytics().topCategory?.category}</p>
+								<p class="text-sm text-purple-600">
+									{formatCurrency(analytics().topCategory?.totalValue || 0)}
+								</p>
+								<p class="text-xs text-muted-foreground">{analytics().topCategory?.count} items</p>
+							{:else}
+								<p class="text-lg font-bold">-</p>
+								<p class="text-sm text-muted-foreground">No data</p>
+							{/if}
+						</div>
+						<div class="rounded-full bg-purple-500/10 p-3">
+							<Star class="h-6 w-6 text-purple-600" />
+						</div>
+					</div>
+				</CardContent>
+			</Card>
+		</div>
+
+		<!-- Category Analysis & Price Distribution -->
+		<div class="grid gap-4 md:grid-cols-2">
+			<Card>
+				<CardHeader>
+					<CardTitle class="flex items-center gap-2">
+						<PieChart class="h-4 w-4" />
+						Category Breakdown
+					</CardTitle>
+				</CardHeader>
+				<CardContent>
+					{#if analytics().categoryData.length > 0}
+						<div class="space-y-3">
+							{#each analytics().categoryData.slice(0, 6) as category}
+								<div class="flex items-center justify-between">
+									<div class="flex items-center gap-2">
+										<div class="h-3 w-3 rounded-full bg-primary/20"></div>
+										<span class="text-sm font-medium">{category.category}</span>
+										<Badge variant="secondary" class="text-xs">{category.count}</Badge>
+									</div>
+									<span class="text-sm font-semibold">{formatCurrency(category.totalValue)}</span>
 								</div>
-								<span class="text-sm font-semibold">{formatCurrency(category.totalValue)}</span>
+							{/each}
+						</div>
+					{:else}
+						<p class="py-4 text-center text-muted-foreground">No categories to display</p>
+					{/if}
+				</CardContent>
+			</Card>
+
+			<Card>
+				<CardHeader>
+					<CardTitle class="flex items-center gap-2">
+						<BarChart3 class="h-4 w-4" />
+						Price Distribution
+					</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<div class="space-y-3">
+						{#each analytics().priceRanges as range}
+							<div class="space-y-1">
+								<div class="flex items-center justify-between text-sm">
+									<span>{range.range}</span>
+									<span class="font-medium">{range.count} items</span>
+								</div>
+								<div class="flex items-center gap-2">
+									<div class="h-2 flex-1 rounded-full bg-muted">
+										<div
+											class="h-2 rounded-full bg-primary transition-all"
+											style="width: {analytics().totalArticles > 0
+												? (range.count / analytics().totalArticles) * 100
+												: 0}%"
+										></div>
+									</div>
+									<span class="min-w-16 text-xs text-muted-foreground">
+										{formatCurrency(range.value)}
+									</span>
+								</div>
 							</div>
 						{/each}
 					</div>
-				{:else}
-					<p class="py-4 text-center text-muted-foreground">No categories to display</p>
-				{/if}
-			</CardContent>
-		</Card>
+				</CardContent>
+			</Card>
+		</div>
 
-		<Card>
-			<CardHeader>
-				<CardTitle class="flex items-center gap-2">
-					<BarChart3 class="h-4 w-4" />
-					Price Distribution
-				</CardTitle>
-			</CardHeader>
-			<CardContent>
-				<div class="space-y-3">
-					{#each analytics().priceRanges as range}
-						<div class="space-y-1">
-							<div class="flex items-center justify-between text-sm">
-								<span>{range.range}</span>
-								<span class="font-medium">{range.count} items</span>
-							</div>
-							<div class="flex items-center gap-2">
-								<div class="h-2 flex-1 rounded-full bg-muted">
-									<div
-										class="h-2 rounded-full bg-primary transition-all"
-										style="width: {analytics().totalArticles > 0
-											? (range.count / analytics().totalArticles) * 100
-											: 0}%"
-									></div>
+		<!-- Top Products -->
+		{#if analytics().topProducts.length > 0}
+			<Card>
+				<CardHeader>
+					<CardTitle class="flex items-center gap-2">
+						<Star class="h-4 w-4" />
+						Highest Value Products
+					</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<div class="space-y-3">
+						{#each analytics().topProducts as product, index}
+							<div class="flex items-center gap-3 rounded-lg bg-muted/30 p-3">
+								<div
+									class="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary"
+								>
+									{index + 1}
 								</div>
-								<span class="min-w-16 text-xs text-muted-foreground">
-									{formatCurrency(range.value)}
-								</span>
+								<div class="flex-1">
+									<p class="font-medium">{product.name}</p>
+									<p class="text-sm text-muted-foreground">{product.category}</p>
+								</div>
+								<div class="text-right">
+									<p class="font-semibold">{formatCurrency(product.price)}</p>
+									{#if product.description}
+										<p class="max-w-32 truncate text-xs text-muted-foreground">
+											{product.description}
+										</p>
+									{/if}
+								</div>
 							</div>
-						</div>
-					{/each}
+						{/each}
+					</div>
+				</CardContent>
+			</Card>
+		{/if}
+
+		<!-- Search and Filters -->
+		<Card>
+			<CardContent class="p-6">
+				<div class="flex items-center gap-4">
+					<div class="relative flex-1">
+						<Search
+							class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+						/>
+						<Input
+							placeholder="Search articles by name, category, or description..."
+							bind:value={searchQuery}
+							class="pl-10"
+						/>
+					</div>
 				</div>
 			</CardContent>
 		</Card>
-	</div>
 
-	<!-- Top Products -->
-	{#if analytics().topProducts.length > 0}
+		<!-- Main Table Card -->
 		<Card>
 			<CardHeader>
-				<CardTitle class="flex items-center gap-2">
-					<Star class="h-4 w-4" />
-					Highest Value Products
-				</CardTitle>
-			</CardHeader>
-			<CardContent>
-				<div class="space-y-3">
-					{#each analytics().topProducts as product, index}
-						<div class="flex items-center gap-3 rounded-lg bg-muted/30 p-3">
-							<div
-								class="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary"
-							>
-								{index + 1}
-							</div>
-							<div class="flex-1">
-								<p class="font-medium">{product.name}</p>
-								<p class="text-sm text-muted-foreground">{product.category}</p>
-							</div>
-							<div class="text-right">
-								<p class="font-semibold">{formatCurrency(product.price)}</p>
-								{#if product.description}
-									<p class="max-w-32 truncate text-xs text-muted-foreground">
-										{product.description}
-									</p>
-								{/if}
-							</div>
-						</div>
-					{/each}
-				</div>
-			</CardContent>
-		</Card>
-	{/if}
-
-	<!-- Search and Filters -->
-	<Card>
-		<CardContent class="p-6">
-			<div class="flex items-center gap-4">
-				<div class="relative flex-1">
-					<Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-					<Input
-						placeholder="Search articles by name, category, or description..."
-						bind:value={searchQuery}
-						class="pl-10"
-					/>
-				</div>
-			</div>
-		</CardContent>
-	</Card>
-
-	<!-- Main Table Card -->
-	<Card>
-		<CardHeader>
-			<div class="flex items-center justify-between">
-				<CardTitle>Articles ({filteredArticles.length})</CardTitle>
-				{#if error}
-					<Badge variant="destructive">{error}</Badge>
-				{/if}
-			</div>
-		</CardHeader>
-		<CardContent class="p-0">
-			{#if paginatedArticles.length === 0}
-				<div class="flex flex-col items-center justify-center py-12 text-center">
-					<Package class="mb-4 h-16 w-16 text-muted-foreground opacity-50" />
-					<h3 class="text-lg font-semibold text-muted-foreground">No articles found</h3>
-					<p class="text-sm text-muted-foreground">
-						{searchQuery
-							? 'Try adjusting your search terms'
-							: 'Get started by creating your first article'}
-					</p>
-					{#if !searchQuery}
-						<Button onclick={openAddModal} class="mt-4 gap-2">
-							<Plus class="h-4 w-4" />
-							Add Article
-						</Button>
+				<div class="flex items-center justify-between">
+					<CardTitle>Articles ({filteredArticles.length})</CardTitle>
+					{#if error}
+						<Badge variant="destructive">{error}</Badge>
 					{/if}
 				</div>
-			{:else}
-				<Table>
-					<TableHeader>
-						<TableHead>Name</TableHead>
-						<TableHead>Category</TableHead>
-						<TableHead>Price</TableHead>
-						<TableHead>Description</TableHead>
-						<TableHead class="text-right">Actions</TableHead>
-					</TableHeader>
-					<TableBody>
-						{#each paginatedArticles as article (article.id)}
-							<TableRow class="group">
-								<TableCell class="font-medium">
-									<div class="flex items-center gap-3">
-										<div class="rounded-lg bg-primary/10 p-2">
-											{#if article.category.toLowerCase().includes('electronics')}
-												<ShoppingCart class="h-4 w-4 text-primary" />
-											{:else if article.category.toLowerCase().includes('clothing')}
-												<Package class="h-4 w-4 text-primary" />
-											{:else if article.category.toLowerCase().includes('books')}
-												<Package class="h-4 w-4 text-primary" />
-											{:else}
-												<Tag class="h-4 w-4 text-primary" />
-											{/if}
-										</div>
-										<div>
-											<p class="font-semibold">{article.name}</p>
-											<p class="text-xs text-muted-foreground">ID: {article.id}</p>
-										</div>
-									</div>
-								</TableCell>
-								<TableCell>
-									<Badge variant="secondary">
-										{article.category}
-									</Badge>
-								</TableCell>
-								<TableCell>
-									<div class="flex items-center gap-1">
-										<span class="font-semibold">{formatCurrency(article.price)}</span>
-									</div>
-								</TableCell>
-								<TableCell>
-									<p class="max-w-xs truncate text-sm text-muted-foreground">
-										{article.description || 'No description'}
-									</p>
-								</TableCell>
-								<TableCell class="text-right">
-									<div class="flex items-center justify-end gap-1">
-										<Button
-											variant="ghost"
-											size="sm"
-											onclick={() => openDetailsModal(article)}
-											class="h-8 w-8 p-0"
-										>
-											<Eye class="h-4 w-4" />
-										</Button>
-										<Button
-											variant="ghost"
-											size="sm"
-											onclick={() => openEditModal(article)}
-											class="h-8 w-8 p-0"
-										>
-											<Edit2 class="h-4 w-4" />
-										</Button>
-										<Button
-											variant="ghost"
-											size="sm"
-											onclick={() => openDeleteDialog(article.id)}
-											class="h-8 w-8 p-0 text-destructive hover:text-destructive"
-										>
-											<Trash2 class="h-4 w-4" />
-										</Button>
-									</div>
-								</TableCell>
-							</TableRow>
-						{/each}
-					</TableBody>
-				</Table>
-
-				<!-- Pagination -->
-				{#if totalPages > 1}
-					<div class="flex items-center justify-between border-t px-6 py-4">
-						<div class="text-sm text-muted-foreground">
-							Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(
-								currentPage * itemsPerPage,
-								filteredArticles.length
-							)} of {filteredArticles.length} results
-						</div>
-
-						<Pagination.Root
-							count={filteredArticles.length}
-							perPage={itemsPerPage}
-							page={currentPage}
-						>
-							{#snippet children({ pages, currentPage: paginationCurrentPage })}
-								<Pagination.Content>
-									<Pagination.Item>
-										<Pagination.PrevButton
-											onclick={() => {
-												if (currentPage > 1) {
-													currentPage = currentPage - 1;
-												}
-											}}
-										/>
-									</Pagination.Item>
-									{#each pages as page (page.key)}
-										{#if page.type === 'ellipsis'}
-											<Pagination.Item>
-												<Pagination.Ellipsis />
-											</Pagination.Item>
-										{:else}
-											<Pagination.Item>
-												<Pagination.Link
-													{page}
-													isActive={paginationCurrentPage === page.value}
-													onclick={() => {
-														currentPage = page.value;
-													}}
-												>
-													{page.value}
-												</Pagination.Link>
-											</Pagination.Item>
-										{/if}
-									{/each}
-									<Pagination.Item>
-										<Pagination.NextButton
-											onclick={() => {
-												if (currentPage < totalPages) {
-													currentPage = currentPage + 1;
-												}
-											}}
-										/>
-									</Pagination.Item>
-								</Pagination.Content>
-							{/snippet}
-						</Pagination.Root>
+			</CardHeader>
+			<CardContent class="p-0">
+				{#if paginatedArticles.length === 0}
+					<div class="flex flex-col items-center justify-center py-12 text-center">
+						<Package class="mb-4 h-16 w-16 text-muted-foreground opacity-50" />
+						<h3 class="text-lg font-semibold text-muted-foreground">No articles found</h3>
+						<p class="text-sm text-muted-foreground">
+							{searchQuery
+								? 'Try adjusting your search terms'
+								: 'Get started by creating your first article'}
+						</p>
+						{#if !searchQuery}
+							<Button onclick={openAddModal} class="mt-4 gap-2">
+								<Plus class="h-4 w-4" />
+								Add Article
+							</Button>
+						{/if}
 					</div>
+				{:else}
+					<Table>
+						<TableHeader>
+							<TableHead>Name</TableHead>
+							<TableHead>Category</TableHead>
+							<TableHead>Price</TableHead>
+							<TableHead>Description</TableHead>
+							<TableHead class="text-right">Actions</TableHead>
+						</TableHeader>
+						<TableBody>
+							{#each paginatedArticles as article (article.id)}
+								<TableRow class="group">
+									<TableCell class="font-medium">
+										<div class="flex items-center gap-3">
+											<div class="rounded-lg bg-primary/10 p-2">
+												{#if article.category.toLowerCase().includes('electronics')}
+													<ShoppingCart class="h-4 w-4 text-primary" />
+												{:else if article.category.toLowerCase().includes('clothing')}
+													<Package class="h-4 w-4 text-primary" />
+												{:else if article.category.toLowerCase().includes('books')}
+													<Package class="h-4 w-4 text-primary" />
+												{:else}
+													<Tag class="h-4 w-4 text-primary" />
+												{/if}
+											</div>
+											<div>
+												<p class="font-semibold">{article.name}</p>
+												<p class="text-xs text-muted-foreground">ID: {article.id}</p>
+											</div>
+										</div>
+									</TableCell>
+									<TableCell>
+										<Badge variant="secondary">
+											{article.category}
+										</Badge>
+									</TableCell>
+									<TableCell>
+										<div class="flex items-center gap-1">
+											<span class="font-semibold">{formatCurrency(article.price)}</span>
+										</div>
+									</TableCell>
+									<TableCell>
+										<p class="max-w-xs truncate text-sm text-muted-foreground">
+											{article.description || 'No description'}
+										</p>
+									</TableCell>
+									<TableCell class="text-right">
+										<div class="flex items-center justify-end gap-1">
+											<Button
+												variant="ghost"
+												size="sm"
+												onclick={() => openDetailsModal(article)}
+												class="h-8 w-8 p-0"
+											>
+												<Eye class="h-4 w-4" />
+											</Button>
+											<Button
+												variant="ghost"
+												size="sm"
+												onclick={() => openEditModal(article)}
+												class="h-8 w-8 p-0"
+											>
+												<Edit2 class="h-4 w-4" />
+											</Button>
+											<Button
+												variant="ghost"
+												size="sm"
+												onclick={() => openDeleteDialog(article.id)}
+												class="h-8 w-8 p-0 text-destructive hover:text-destructive"
+											>
+												<Trash2 class="h-4 w-4" />
+											</Button>
+										</div>
+									</TableCell>
+								</TableRow>
+							{/each}
+						</TableBody>
+					</Table>
+
+					<!-- Pagination -->
+					{#if totalPages > 1}
+						<div class="flex items-center justify-between border-t px-6 py-4">
+							<div class="text-sm text-muted-foreground">
+								Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(
+									currentPage * itemsPerPage,
+									filteredArticles.length
+								)} of {filteredArticles.length} results
+							</div>
+
+							<Pagination.Root
+								count={filteredArticles.length}
+								perPage={itemsPerPage}
+								page={currentPage}
+							>
+								{#snippet children({ pages, currentPage: paginationCurrentPage })}
+									<Pagination.Content>
+										<Pagination.Item>
+											<Pagination.PrevButton
+												onclick={() => {
+													if (currentPage > 1) {
+														currentPage = currentPage - 1;
+													}
+												}}
+											/>
+										</Pagination.Item>
+										{#each pages as page (page.key)}
+											{#if page.type === 'ellipsis'}
+												<Pagination.Item>
+													<Pagination.Ellipsis />
+												</Pagination.Item>
+											{:else}
+												<Pagination.Item>
+													<Pagination.Link
+														{page}
+														isActive={paginationCurrentPage === page.value}
+														onclick={() => {
+															currentPage = page.value;
+														}}
+													>
+														{page.value}
+													</Pagination.Link>
+												</Pagination.Item>
+											{/if}
+										{/each}
+										<Pagination.Item>
+											<Pagination.NextButton
+												onclick={() => {
+													if (currentPage < totalPages) {
+														currentPage = currentPage + 1;
+													}
+												}}
+											/>
+										</Pagination.Item>
+									</Pagination.Content>
+								{/snippet}
+							</Pagination.Root>
+						</div>
+					{/if}
 				{/if}
-			{/if}
-		</CardContent>
-	</Card>
+			</CardContent>
+		</Card>
+	</div>
 </div>
 
 <!-- Article Details Modal -->

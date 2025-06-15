@@ -576,790 +576,804 @@
 
 <Toaster position="top-center" richColors />
 
-<div class="container mx-auto space-y-6 p-6">
-	<!-- Header -->
-	<div class="flex items-center justify-between">
-		<div class="flex items-center gap-3">
-			<div class="rounded-lg bg-primary/10 p-2">
-				<BarChart3 class="h-6 w-6 text-primary" />
+<div class="p-6">
+	<div class="mx-auto max-w-none space-y-6">
+		<!-- Header -->
+		<div class="flex items-center justify-between">
+			<div class="flex items-center gap-3">
+				<div class="rounded-lg bg-primary/10 p-2">
+					<BarChart3 class="h-6 w-6 text-primary" />
+				</div>
+				<div>
+					<h1 class="text-3xl font-bold tracking-tight">Transactions Analytics</h1>
+					<p class="text-muted-foreground">
+						Comprehensive transaction insights and performance metrics
+					</p>
+				</div>
 			</div>
-			<div>
-				<h1 class="text-3xl font-bold tracking-tight">Transactions Analytics</h1>
-				<p class="text-muted-foreground">
-					Comprehensive transaction insights and performance metrics
-				</p>
-			</div>
-		</div>
-		<div class="flex items-center gap-2">
-			<Button variant="outline" size="sm" onclick={exportTransactions}>
-				<Download class="mr-2 h-4 w-4" />
-				Export
-			</Button>
-			<Popover.Root bind:open={showDatePicker}>
-				<Popover.Trigger>
-					<Button variant="outline" size="sm" class="min-w-[200px] justify-start">
-						<CalendarIcon class="mr-2 h-4 w-4" />
-						{formatDateRange()}
-					</Button>
-				</Popover.Trigger>
-				<Popover.Content class="w-auto p-0" align="end">
-					<div class="space-y-4 p-4">
-						<div class="space-y-2">
-							<p class="text-sm font-medium">Quick Select</p>
-							<div class="grid grid-cols-2 gap-2">
-								<Button variant="ghost" size="sm" onclick={() => setQuickDateRange('today')}>
-									Today
-								</Button>
-								<Button variant="ghost" size="sm" onclick={() => setQuickDateRange('yesterday')}>
-									Yesterday
-								</Button>
-								<Button variant="ghost" size="sm" onclick={() => setQuickDateRange('last7days')}>
-									Last 7 days
-								</Button>
-								<Button variant="ghost" size="sm" onclick={() => setQuickDateRange('last30days')}>
-									Last 30 days
-								</Button>
-								<Button variant="ghost" size="sm" onclick={() => setQuickDateRange('thisMonth')}>
-									This month
-								</Button>
-								<Button variant="ghost" size="sm" onclick={clearDateRange}>Clear</Button>
+			<div class="flex items-center gap-2">
+				<Button variant="outline" size="sm" onclick={exportTransactions}>
+					<Download class="mr-2 h-4 w-4" />
+					Export
+				</Button>
+				<Popover.Root bind:open={showDatePicker}>
+					<Popover.Trigger>
+						<Button variant="outline" size="sm" class="min-w-[200px] justify-start">
+							<CalendarIcon class="mr-2 h-4 w-4" />
+							{formatDateRange()}
+						</Button>
+					</Popover.Trigger>
+					<Popover.Content class="w-auto p-0" align="end">
+						<div class="space-y-4 p-4">
+							<div class="space-y-2">
+								<p class="text-sm font-medium">Quick Select</p>
+								<div class="grid grid-cols-2 gap-2">
+									<Button variant="ghost" size="sm" onclick={() => setQuickDateRange('today')}>
+										Today
+									</Button>
+									<Button variant="ghost" size="sm" onclick={() => setQuickDateRange('yesterday')}>
+										Yesterday
+									</Button>
+									<Button variant="ghost" size="sm" onclick={() => setQuickDateRange('last7days')}>
+										Last 7 days
+									</Button>
+									<Button variant="ghost" size="sm" onclick={() => setQuickDateRange('last30days')}>
+										Last 30 days
+									</Button>
+									<Button variant="ghost" size="sm" onclick={() => setQuickDateRange('thisMonth')}>
+										This month
+									</Button>
+									<Button variant="ghost" size="sm" onclick={clearDateRange}>Clear</Button>
+								</div>
+							</div>
+							<Separator />
+							<div class="space-y-2">
+								<p class="text-sm font-medium">Custom Range</p>
+								<RangeCalendar
+									bind:value={customDateRange}
+									onValueChange={(range) => {
+										if (range?.start && range?.end) {
+											dateRangeStart = range.start.toDate(getLocalTimeZone());
+											dateRangeEnd = range.end.toDate(getLocalTimeZone());
+										}
+									}}
+								/>
+								<div class="flex gap-2">
+									<Button size="sm" onclick={() => (showDatePicker = false)}>Apply</Button>
+								</div>
 							</div>
 						</div>
-						<Separator />
-						<div class="space-y-2">
-							<p class="text-sm font-medium">Custom Range</p>
-							<RangeCalendar
-								bind:value={customDateRange}
-								onValueChange={(range) => {
-									if (range?.start && range?.end) {
-										dateRangeStart = range.start.toDate(getLocalTimeZone());
-										dateRangeEnd = range.end.toDate(getLocalTimeZone());
-									}
-								}}
-							/>
-							<div class="flex gap-2">
-								<Button size="sm" onclick={() => (showDatePicker = false)}>Apply</Button>
-							</div>
-						</div>
-					</div>
-				</Popover.Content>
-			</Popover.Root>
+					</Popover.Content>
+				</Popover.Root>
+			</div>
 		</div>
-	</div>
 
-	<!-- Enhanced Stats Cards -->
-	<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-		<Card class="border-l-4 border-l-blue-500">
-			<CardContent class="p-6">
-				<div class="flex items-center justify-between">
-					<div>
-						<p class="text-sm font-medium text-muted-foreground">Total Revenue</p>
-						<p class="text-2xl font-bold">{formatAmount(transactionAnalytics.totalRevenue)}</p>
-						<div class="flex items-center gap-1 text-xs">
-							{#if transactionAnalytics.revenueGrowth >= 0}
-								<TrendingUp class="h-3 w-3 text-green-600" />
-								<span class="text-green-600">+{transactionAnalytics.revenueGrowth.toFixed(1)}%</span
-								>
-							{:else}
-								<TrendingDown class="h-3 w-3 text-red-600" />
-								<span class="text-red-600">{transactionAnalytics.revenueGrowth.toFixed(1)}%</span>
-							{/if}
-							<span class="text-muted-foreground">vs last week</span>
+		<!-- Enhanced Stats Cards -->
+		<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+			<Card class="border-l-4 border-l-blue-500">
+				<CardContent class="p-6">
+					<div class="flex items-center justify-between">
+						<div>
+							<p class="text-sm font-medium text-muted-foreground">Total Revenue</p>
+							<p class="text-2xl font-bold">{formatAmount(transactionAnalytics.totalRevenue)}</p>
+							<div class="flex items-center gap-1 text-xs">
+								{#if transactionAnalytics.revenueGrowth >= 0}
+									<TrendingUp class="h-3 w-3 text-green-600" />
+									<span class="text-green-600"
+										>+{transactionAnalytics.revenueGrowth.toFixed(1)}%</span
+									>
+								{:else}
+									<TrendingDown class="h-3 w-3 text-red-600" />
+									<span class="text-red-600">{transactionAnalytics.revenueGrowth.toFixed(1)}%</span>
+								{/if}
+								<span class="text-muted-foreground">vs last week</span>
+							</div>
 						</div>
-					</div>
-					<!-- <div class="rounded-full bg-blue-500/10 p-3">
+						<!-- <div class="rounded-full bg-blue-500/10 p-3">
 						<DollarSign class="h-6 w-6 text-blue-600" />
 					</div> -->
-				</div>
-			</CardContent>
-		</Card>
-
-		<Card class="border-l-4 border-l-green-500">
-			<CardContent class="p-6">
-				<div class="flex items-center justify-between">
-					<div>
-						<p class="text-sm font-medium text-muted-foreground">Success Rate</p>
-						<p class="text-2xl font-bold">{transactionAnalytics.successRate.toFixed(1)}%</p>
-						<div class="mt-2">
-							<Progress value={transactionAnalytics.successRate} class="h-2" />
-						</div>
-						<p class="mt-1 text-xs text-muted-foreground">
-							Today: {transactionAnalytics.dailySuccessRate.toFixed(1)}%
-						</p>
 					</div>
-					<div class="rounded-full bg-green-500/10 p-3">
-						<Target class="h-6 w-6 text-green-600" />
-					</div>
-				</div>
-			</CardContent>
-		</Card>
+				</CardContent>
+			</Card>
 
-		<Card class="border-l-4 border-l-orange-500">
-			<CardContent class="p-6">
-				<div class="flex items-center justify-between">
-					<div>
-						<p class="text-sm font-medium text-muted-foreground">Avg Transaction</p>
-						<p class="text-2xl font-bold">
-							{formatAmount(transactionAnalytics.avgTransactionValue)}
-						</p>
-						<div class="flex items-center gap-1 text-xs text-orange-600">
-							<Activity class="h-3 w-3" />
-							<span>Today: {formatAmount(transactionAnalytics.todaysAvgValue)}</span>
-						</div>
-					</div>
-				</div>
-			</CardContent>
-		</Card>
-
-		<Card class="border-l-4 border-l-purple-500">
-			<CardContent class="p-6">
-				<div class="flex items-center justify-between">
-					<div>
-						<p class="text-sm font-medium text-muted-foreground">Peak Performance</p>
-						<p class="text-lg font-bold">{transactionAnalytics.peakDay.day}</p>
-						<p class="text-sm text-purple-600">{transactionAnalytics.peakDay.count} transactions</p>
-						<p class="text-xs text-muted-foreground">
-							Best hour: {transactionAnalytics.peakHour.hour}:00
-						</p>
-					</div>
-					<div class="rounded-full bg-purple-500/10 p-3">
-						<Zap class="h-6 w-6 text-purple-600" />
-					</div>
-				</div>
-			</CardContent>
-		</Card>
-	</div>
-
-	<!-- Quick Performance Metrics -->
-	<div class="grid gap-4 md:grid-cols-3">
-		<Card>
-			<CardHeader class="pb-2">
-				<CardTitle class="flex items-center gap-2 text-lg">
-					<CalendarIcon class="h-4 w-4" />
-					Today's Performance
-				</CardTitle>
-			</CardHeader>
-			<CardContent class="space-y-3">
-				<div class="flex items-center justify-between">
-					<span class="text-sm text-muted-foreground">Transactions</span>
-					<span class="font-semibold">{transactionAnalytics.todaysTransactions}</span>
-				</div>
-				<div class="flex items-center justify-between">
-					<span class="text-sm text-muted-foreground">Revenue</span>
-					<span class="font-semibold text-green-600"
-						>{formatAmount(transactionAnalytics.todaysRevenue)}</span
-					>
-				</div>
-				<div class="flex items-center justify-between">
-					<span class="text-sm text-muted-foreground">Success Rate</span>
-					<span class="font-semibold">{transactionAnalytics.dailySuccessRate.toFixed(1)}%</span>
-				</div>
-				<Progress value={transactionAnalytics.dailySuccessRate} class="h-2" />
-			</CardContent>
-		</Card>
-
-		<Card>
-			<CardHeader class="pb-2">
-				<CardTitle class="flex items-center gap-2 text-lg">
-					<Activity class="h-4 w-4" />
-					Weekly Summary
-				</CardTitle>
-			</CardHeader>
-			<CardContent class="space-y-3">
-				<div class="flex items-center justify-between">
-					<span class="text-sm text-muted-foreground">Transactions</span>
-					<span class="font-semibold">{transactionAnalytics.weekTransactions}</span>
-				</div>
-				<div class="flex items-center justify-between">
-					<span class="text-sm text-muted-foreground">Revenue</span>
-					<span class="font-semibold text-green-600"
-						>{formatAmount(transactionAnalytics.weekRevenue)}</span
-					>
-				</div>
-				<div class="flex items-center justify-between">
-					<span class="text-sm text-muted-foreground">Daily Average</span>
-					<span class="font-semibold">{Math.round(transactionAnalytics.weekTransactions / 7)}</span>
-				</div>
-			</CardContent>
-		</Card>
-
-		<Card>
-			<CardHeader class="pb-2">
-				<CardTitle class="flex items-center gap-2 text-lg">
-					<TrendingUp class="h-4 w-4" />
-					Monthly Overview
-				</CardTitle>
-			</CardHeader>
-			<CardContent class="space-y-3">
-				<div class="flex items-center justify-between">
-					<span class="text-sm text-muted-foreground">Transactions</span>
-					<span class="font-semibold">{transactionAnalytics.monthTransactions}</span>
-				</div>
-				<div class="flex items-center justify-between">
-					<span class="text-sm text-muted-foreground">Revenue</span>
-					<span class="font-semibold text-green-600"
-						>{formatAmount(transactionAnalytics.monthRevenue)}</span
-					>
-				</div>
-				<div class="flex items-center justify-between">
-					<span class="text-sm text-muted-foreground">Growth</span>
-					<span
-						class="font-semibold {transactionAnalytics.revenueGrowth >= 0
-							? 'text-green-600'
-							: 'text-red-600'}"
-					>
-						{transactionAnalytics.revenueGrowth >= 0
-							? '+'
-							: ''}{transactionAnalytics.revenueGrowth.toFixed(1)}%
-					</span>
-				</div>
-			</CardContent>
-		</Card>
-	</div>
-
-	<!-- Status Breakdown -->
-	<Card>
-		<CardHeader>
-			<CardTitle class="flex items-center gap-2">
-				<PieChart class="h-5 w-5" />
-				Transaction Status Breakdown
-			</CardTitle>
-		</CardHeader>
-		<CardContent>
-			<div class="grid gap-4 md:grid-cols-3">
-				<div class="flex items-center justify-between rounded-lg bg-green-500/10 p-4">
-					<div class="flex items-center gap-3">
-						<div class="rounded-full bg-green-500 p-2">
-							<CheckCircle class="h-4 w-4 text-white" />
-						</div>
+			<Card class="border-l-4 border-l-green-500">
+				<CardContent class="p-6">
+					<div class="flex items-center justify-between">
 						<div>
-							<p class="font-semibold text-green-700">Approved</p>
-							<p class="text-sm text-green-600">
-								{((transactionAnalytics.approved / transactionAnalytics.total) * 100).toFixed(1)}%
-								of total
+							<p class="text-sm font-medium text-muted-foreground">Success Rate</p>
+							<p class="text-2xl font-bold">{transactionAnalytics.successRate.toFixed(1)}%</p>
+							<div class="mt-2">
+								<Progress value={transactionAnalytics.successRate} class="h-2" />
+							</div>
+							<p class="mt-1 text-xs text-muted-foreground">
+								Today: {transactionAnalytics.dailySuccessRate.toFixed(1)}%
 							</p>
 						</div>
-					</div>
-					<p class="text-2xl font-bold text-green-700">{transactionAnalytics.approved}</p>
-				</div>
-
-				<div class="flex items-center justify-between rounded-lg bg-red-500/10 p-4">
-					<div class="flex items-center gap-3">
-						<div class="rounded-full bg-red-500 p-2">
-							<XCircle class="h-4 w-4 text-white" />
+						<div class="rounded-full bg-green-500/10 p-3">
+							<Target class="h-6 w-6 text-green-600" />
 						</div>
+					</div>
+				</CardContent>
+			</Card>
+
+			<Card class="border-l-4 border-l-orange-500">
+				<CardContent class="p-6">
+					<div class="flex items-center justify-between">
 						<div>
-							<p class="font-semibold text-red-700">Declined</p>
-							<p class="text-sm text-red-600">
-								{((transactionAnalytics.declined / transactionAnalytics.total) * 100).toFixed(1)}%
-								of total
+							<p class="text-sm font-medium text-muted-foreground">Avg Transaction</p>
+							<p class="text-2xl font-bold">
+								{formatAmount(transactionAnalytics.avgTransactionValue)}
+							</p>
+							<div class="flex items-center gap-1 text-xs text-orange-600">
+								<Activity class="h-3 w-3" />
+								<span>Today: {formatAmount(transactionAnalytics.todaysAvgValue)}</span>
+							</div>
+						</div>
+					</div>
+				</CardContent>
+			</Card>
+
+			<Card class="border-l-4 border-l-purple-500">
+				<CardContent class="p-6">
+					<div class="flex items-center justify-between">
+						<div>
+							<p class="text-sm font-medium text-muted-foreground">Peak Performance</p>
+							<p class="text-lg font-bold">{transactionAnalytics.peakDay.day}</p>
+							<p class="text-sm text-purple-600">
+								{transactionAnalytics.peakDay.count} transactions
+							</p>
+							<p class="text-xs text-muted-foreground">
+								Best hour: {transactionAnalytics.peakHour.hour}:00
 							</p>
 						</div>
-					</div>
-					<p class="text-2xl font-bold text-red-700">{transactionAnalytics.declined}</p>
-				</div>
-
-				<div class="flex items-center justify-between rounded-lg bg-yellow-500/10 p-4">
-					<div class="flex items-center gap-3">
-						<div class="rounded-full bg-yellow-500 p-2">
-							<Clock class="h-4 w-4 text-white" />
-						</div>
-						<div>
-							<p class="font-semibold text-yellow-700">Pending</p>
-							<p class="text-sm text-yellow-600">
-								{((transactionAnalytics.pending / transactionAnalytics.total) * 100).toFixed(1)}% of
-								total
-							</p>
+						<div class="rounded-full bg-purple-500/10 p-3">
+							<Zap class="h-6 w-6 text-purple-600" />
 						</div>
 					</div>
-					<p class="text-2xl font-bold text-yellow-700">{transactionAnalytics.pending}</p>
-				</div>
-			</div>
-		</CardContent>
-	</Card>
+				</CardContent>
+			</Card>
+		</div>
 
-	<!-- Advanced Charts Section -->
-	<div class="grid gap-4 lg:grid-cols-2">
-		<!-- Revenue Trend Chart -->
-		<Card>
-			<CardHeader>
-				<CardTitle class="flex items-center gap-2">
-					<TrendingUp class="h-5 w-5" />
-					Revenue Trends (30 Days)
-				</CardTitle>
-			</CardHeader>
-			<CardContent>
-				<div class="space-y-2">
-					{#each transactionAnalytics.dailyTrends.slice(-7) as trend, index}
-						{@const maxRevenue = Math.max(
-							...transactionAnalytics.dailyTrends.map((t) => t.revenue)
-						)}
-						{@const heightPercentage = maxRevenue > 0 ? (trend.revenue / maxRevenue) * 100 : 0}
-						<div class="flex items-center gap-3">
-							<div class="w-16 text-xs text-muted-foreground">{trend.dateLabel}</div>
-							<div class="flex-1">
-								<div class="mb-1 flex items-center justify-between">
-									<div
-										class="h-6 rounded bg-gradient-to-r from-primary/20 to-primary/60"
-										style="width: {heightPercentage}%"
-									></div>
-									<span class="ml-2 text-sm font-medium">{formatAmount(trend.revenue)}</span>
-								</div>
-							</div>
-						</div>
-					{/each}
-				</div>
-			</CardContent>
-		</Card>
-
-		<!-- Transaction Volume Chart -->
-		<Card>
-			<CardHeader>
-				<CardTitle class="flex items-center gap-2">
-					<BarChart3 class="h-5 w-5" />
-					Transaction Volume (Last 7 Days)
-				</CardTitle>
-			</CardHeader>
-			<CardContent>
-				<div class="space-y-2">
-					{#each transactionAnalytics.dailyTrends.slice(-7) as trend}
-						{@const maxTransactions = Math.max(
-							...transactionAnalytics.dailyTrends.map((t) => t.transactions)
-						)}
-						{@const approvedPercentage =
-							maxTransactions > 0 ? (trend.approved / maxTransactions) * 100 : 0}
-						{@const declinedPercentage =
-							maxTransactions > 0 ? (trend.declined / maxTransactions) * 100 : 0}
-						<div class="flex items-center gap-3">
-							<div class="w-16 text-xs text-muted-foreground">{trend.dateLabel}</div>
-							<div class="flex-1 space-y-1">
-								<div class="flex items-center gap-1">
-									<div class="h-3 rounded bg-green-500" style="width: {approvedPercentage}%"></div>
-									<span class="text-xs text-green-600">{trend.approved}</span>
-								</div>
-								<div class="flex items-center gap-1">
-									<div class="h-3 rounded bg-red-500" style="width: {declinedPercentage}%"></div>
-									<span class="text-xs text-red-600">{trend.declined}</span>
-								</div>
-							</div>
-							<div class="w-12 text-right text-xs">{trend.success_rate.toFixed(0)}%</div>
-						</div>
-					{/each}
-				</div>
-			</CardContent>
-		</Card>
-	</div>
-
-	<!-- Hourly Performance Heatmap -->
-	<Card>
-		<CardHeader>
-			<CardTitle class="flex items-center gap-2">
-				<Activity class="h-5 w-5" />
-				24-Hour Performance Heatmap
-			</CardTitle>
-		</CardHeader>
-		<CardContent>
-			<div class="grid grid-cols-12 gap-1">
-				{#each transactionAnalytics.hourlyData as hour}
-					{@const intensity = Math.min(
-						hour.count / Math.max(...transactionAnalytics.hourlyData.map((h) => h.count)),
-						1
-					)}
-					<div
-						class="flex aspect-square items-center justify-center rounded-sm border text-xs font-medium transition-colors"
-						style="background-color: hsl(var(--primary) / {intensity * 0.8}); color: {intensity >
-						0.5
-							? 'white'
-							: 'hsl(var(--foreground))'}"
-						title="{hour.hour}:00 - {hour.count} transactions, {formatAmount(hour.revenue)} revenue"
-					>
-						{hour.hour}
+		<!-- Quick Performance Metrics -->
+		<div class="grid gap-4 md:grid-cols-3">
+			<Card>
+				<CardHeader class="pb-2">
+					<CardTitle class="flex items-center gap-2 text-lg">
+						<CalendarIcon class="h-4 w-4" />
+						Today's Performance
+					</CardTitle>
+				</CardHeader>
+				<CardContent class="space-y-3">
+					<div class="flex items-center justify-between">
+						<span class="text-sm text-muted-foreground">Transactions</span>
+						<span class="font-semibold">{transactionAnalytics.todaysTransactions}</span>
 					</div>
-				{/each}
-			</div>
-			<div class="mt-4 flex items-center justify-between text-sm text-muted-foreground">
-				<span>12 AM</span>
-				<span
-					>Peak: {transactionAnalytics.peakHour.hour}:00 ({transactionAnalytics.peakHour.count} transactions)</span
-				>
-				<span>11 PM</span>
-			</div>
-		</CardContent>
-	</Card>
+					<div class="flex items-center justify-between">
+						<span class="text-sm text-muted-foreground">Revenue</span>
+						<span class="font-semibold text-green-600"
+							>{formatAmount(transactionAnalytics.todaysRevenue)}</span
+						>
+					</div>
+					<div class="flex items-center justify-between">
+						<span class="text-sm text-muted-foreground">Success Rate</span>
+						<span class="font-semibold">{transactionAnalytics.dailySuccessRate.toFixed(1)}%</span>
+					</div>
+					<Progress value={transactionAnalytics.dailySuccessRate} class="h-2" />
+				</CardContent>
+			</Card>
 
-	<!-- Weekly Performance and Amount Distribution -->
-	<div class="grid gap-4 lg:grid-cols-2">
-		<!-- Weekly Performance -->
-		<Card>
-			<CardHeader>
-				<CardTitle class="flex items-center gap-2">
-					<CalendarIcon class="h-5 w-5" />
-					Weekly Performance
-				</CardTitle>
-			</CardHeader>
-			<CardContent>
-				<div class="space-y-3">
-					{#each transactionAnalytics.weeklyData as day}
-						{@const maxCount = Math.max(...transactionAnalytics.weeklyData.map((d) => d.count))}
-						{@const percentage = maxCount > 0 ? (day.count / maxCount) * 100 : 0}
-						<div class="flex items-center justify-between">
-							<div class="flex-1">
-								<div class="mb-1 flex items-center justify-between">
-									<span class="text-sm font-medium">{day.day}</span>
-									<span class="text-sm text-muted-foreground">{day.count} transactions</span>
-								</div>
-								<Progress value={percentage} class="h-2" />
-								<div class="mt-1 text-xs text-muted-foreground">
-									{formatAmount(day.revenue)} revenue
-								</div>
-							</div>
-						</div>
-					{/each}
-				</div>
-			</CardContent>
-		</Card>
+			<Card>
+				<CardHeader class="pb-2">
+					<CardTitle class="flex items-center gap-2 text-lg">
+						<Activity class="h-4 w-4" />
+						Weekly Summary
+					</CardTitle>
+				</CardHeader>
+				<CardContent class="space-y-3">
+					<div class="flex items-center justify-between">
+						<span class="text-sm text-muted-foreground">Transactions</span>
+						<span class="font-semibold">{transactionAnalytics.weekTransactions}</span>
+					</div>
+					<div class="flex items-center justify-between">
+						<span class="text-sm text-muted-foreground">Revenue</span>
+						<span class="font-semibold text-green-600"
+							>{formatAmount(transactionAnalytics.weekRevenue)}</span
+						>
+					</div>
+					<div class="flex items-center justify-between">
+						<span class="text-sm text-muted-foreground">Daily Average</span>
+						<span class="font-semibold"
+							>{Math.round(transactionAnalytics.weekTransactions / 7)}</span
+						>
+					</div>
+				</CardContent>
+			</Card>
 
-		<!-- Amount Distribution -->
+			<Card>
+				<CardHeader class="pb-2">
+					<CardTitle class="flex items-center gap-2 text-lg">
+						<TrendingUp class="h-4 w-4" />
+						Monthly Overview
+					</CardTitle>
+				</CardHeader>
+				<CardContent class="space-y-3">
+					<div class="flex items-center justify-between">
+						<span class="text-sm text-muted-foreground">Transactions</span>
+						<span class="font-semibold">{transactionAnalytics.monthTransactions}</span>
+					</div>
+					<div class="flex items-center justify-between">
+						<span class="text-sm text-muted-foreground">Revenue</span>
+						<span class="font-semibold text-green-600"
+							>{formatAmount(transactionAnalytics.monthRevenue)}</span
+						>
+					</div>
+					<div class="flex items-center justify-between">
+						<span class="text-sm text-muted-foreground">Growth</span>
+						<span
+							class="font-semibold {transactionAnalytics.revenueGrowth >= 0
+								? 'text-green-600'
+								: 'text-red-600'}"
+						>
+							{transactionAnalytics.revenueGrowth >= 0
+								? '+'
+								: ''}{transactionAnalytics.revenueGrowth.toFixed(1)}%
+						</span>
+					</div>
+				</CardContent>
+			</Card>
+		</div>
+
+		<!-- Status Breakdown -->
 		<Card>
 			<CardHeader>
 				<CardTitle class="flex items-center gap-2">
 					<PieChart class="h-5 w-5" />
-					Transaction Amount Distribution
+					Transaction Status Breakdown
 				</CardTitle>
 			</CardHeader>
 			<CardContent>
-				<div class="space-y-3">
-					{#each transactionAnalytics.amountRanges as range}
-						{@const maxCount = Math.max(...transactionAnalytics.amountRanges.map((r) => r.count))}
-						{@const percentage = maxCount > 0 ? (range.count / maxCount) * 100 : 0}
-						{@const totalTransactions = transactionAnalytics.approved}
-						{@const sharePercentage =
-							totalTransactions > 0 ? (range.count / totalTransactions) * 100 : 0}
-						<div class="flex items-center justify-between">
-							<div class="flex-1">
-								<div class="mb-1 flex items-center justify-between">
-									<span class="text-sm font-medium">{range.range}</span>
-									<span class="text-sm text-muted-foreground"
-										>{range.count} ({sharePercentage.toFixed(1)}%)</span
-									>
-								</div>
-								<Progress value={percentage} class="h-2" />
+				<div class="grid gap-4 md:grid-cols-3">
+					<div class="flex items-center justify-between rounded-lg bg-green-500/10 p-4">
+						<div class="flex items-center gap-3">
+							<div class="rounded-full bg-green-500 p-2">
+								<CheckCircle class="h-4 w-4 text-white" />
+							</div>
+							<div>
+								<p class="font-semibold text-green-700">Approved</p>
+								<p class="text-sm text-green-600">
+									{((transactionAnalytics.approved / transactionAnalytics.total) * 100).toFixed(1)}%
+									of total
+								</p>
 							</div>
 						</div>
-					{/each}
+						<p class="text-2xl font-bold text-green-700">{transactionAnalytics.approved}</p>
+					</div>
+
+					<div class="flex items-center justify-between rounded-lg bg-red-500/10 p-4">
+						<div class="flex items-center gap-3">
+							<div class="rounded-full bg-red-500 p-2">
+								<XCircle class="h-4 w-4 text-white" />
+							</div>
+							<div>
+								<p class="font-semibold text-red-700">Declined</p>
+								<p class="text-sm text-red-600">
+									{((transactionAnalytics.declined / transactionAnalytics.total) * 100).toFixed(1)}%
+									of total
+								</p>
+							</div>
+						</div>
+						<p class="text-2xl font-bold text-red-700">{transactionAnalytics.declined}</p>
+					</div>
+
+					<div class="flex items-center justify-between rounded-lg bg-yellow-500/10 p-4">
+						<div class="flex items-center gap-3">
+							<div class="rounded-full bg-yellow-500 p-2">
+								<Clock class="h-4 w-4 text-white" />
+							</div>
+							<div>
+								<p class="font-semibold text-yellow-700">Pending</p>
+								<p class="text-sm text-yellow-600">
+									{((transactionAnalytics.pending / transactionAnalytics.total) * 100).toFixed(1)}%
+									of total
+								</p>
+							</div>
+						</div>
+						<p class="text-2xl font-bold text-yellow-700">{transactionAnalytics.pending}</p>
+					</div>
 				</div>
 			</CardContent>
 		</Card>
-	</div>
 
-	<!-- Payment Methods & Peak Hours -->
-	<div class="grid gap-4 md:grid-cols-1">
+		<!-- Advanced Charts Section -->
+		<div class="grid gap-4 lg:grid-cols-2">
+			<!-- Revenue Trend Chart -->
+			<Card>
+				<CardHeader>
+					<CardTitle class="flex items-center gap-2">
+						<TrendingUp class="h-5 w-5" />
+						Revenue Trends (30 Days)
+					</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<div class="space-y-2">
+						{#each transactionAnalytics.dailyTrends.slice(-7) as trend, index}
+							{@const maxRevenue = Math.max(
+								...transactionAnalytics.dailyTrends.map((t) => t.revenue)
+							)}
+							{@const heightPercentage = maxRevenue > 0 ? (trend.revenue / maxRevenue) * 100 : 0}
+							<div class="flex items-center gap-3">
+								<div class="w-16 text-xs text-muted-foreground">{trend.dateLabel}</div>
+								<div class="flex-1">
+									<div class="mb-1 flex items-center justify-between">
+										<div
+											class="h-6 rounded bg-gradient-to-r from-primary/20 to-primary/60"
+											style="width: {heightPercentage}%"
+										></div>
+										<span class="ml-2 text-sm font-medium">{formatAmount(trend.revenue)}</span>
+									</div>
+								</div>
+							</div>
+						{/each}
+					</div>
+				</CardContent>
+			</Card>
+
+			<!-- Transaction Volume Chart -->
+			<Card>
+				<CardHeader>
+					<CardTitle class="flex items-center gap-2">
+						<BarChart3 class="h-5 w-5" />
+						Transaction Volume (Last 7 Days)
+					</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<div class="space-y-2">
+						{#each transactionAnalytics.dailyTrends.slice(-7) as trend}
+							{@const maxTransactions = Math.max(
+								...transactionAnalytics.dailyTrends.map((t) => t.transactions)
+							)}
+							{@const approvedPercentage =
+								maxTransactions > 0 ? (trend.approved / maxTransactions) * 100 : 0}
+							{@const declinedPercentage =
+								maxTransactions > 0 ? (trend.declined / maxTransactions) * 100 : 0}
+							<div class="flex items-center gap-3">
+								<div class="w-16 text-xs text-muted-foreground">{trend.dateLabel}</div>
+								<div class="flex-1 space-y-1">
+									<div class="flex items-center gap-1">
+										<div
+											class="h-3 rounded bg-green-500"
+											style="width: {approvedPercentage}%"
+										></div>
+										<span class="text-xs text-green-600">{trend.approved}</span>
+									</div>
+									<div class="flex items-center gap-1">
+										<div class="h-3 rounded bg-red-500" style="width: {declinedPercentage}%"></div>
+										<span class="text-xs text-red-600">{trend.declined}</span>
+									</div>
+								</div>
+								<div class="w-12 text-right text-xs">{trend.success_rate.toFixed(0)}%</div>
+							</div>
+						{/each}
+					</div>
+				</CardContent>
+			</Card>
+		</div>
+
+		<!-- Hourly Performance Heatmap -->
 		<Card>
 			<CardHeader>
 				<CardTitle class="flex items-center gap-2">
-					<Clock class="h-5 w-5" />
-					Peak Performance
+					<Activity class="h-5 w-5" />
+					24-Hour Performance Heatmap
 				</CardTitle>
 			</CardHeader>
-			<CardContent class="space-y-4">
-				<div class="rounded-lg bg-primary/10 p-4 text-center">
-					<div class="text-2xl font-bold text-primary">{transactionAnalytics.peakHour.hour}:00</div>
-					<p class="text-sm text-muted-foreground">Peak Transaction Hour</p>
-					<p class="text-xs text-muted-foreground">
-						{transactionAnalytics.peakHour.count || 0} transactions
-					</p>
+			<CardContent>
+				<div class="grid grid-cols-12 gap-1">
+					{#each transactionAnalytics.hourlyData as hour}
+						{@const intensity = Math.min(
+							hour.count / Math.max(...transactionAnalytics.hourlyData.map((h) => h.count)),
+							1
+						)}
+						<div
+							class="flex aspect-square items-center justify-center rounded-sm border text-xs font-medium transition-colors"
+							style="background-color: hsl(var(--primary) / {intensity * 0.8}); color: {intensity >
+							0.5
+								? 'white'
+								: 'hsl(var(--foreground))'}"
+							title="{hour.hour}:00 - {hour.count} transactions, {formatAmount(
+								hour.revenue
+							)} revenue"
+						>
+							{hour.hour}
+						</div>
+					{/each}
 				</div>
-				<div class="grid grid-cols-3 gap-2 text-center text-xs">
-					<div>
-						<p class="font-semibold">Morning</p>
-						<p class="text-muted-foreground">6-12</p>
-						<p class="font-medium">
-							{transactionAnalytics.hourlyData
-								.filter((data) => data.hour >= 6 && data.hour < 12)
-								.reduce((sum, data) => sum + data.count, 0)}
-						</p>
-					</div>
-					<div>
-						<p class="font-semibold">Afternoon</p>
-						<p class="text-muted-foreground">12-18</p>
-						<p class="font-medium">
-							{transactionAnalytics.hourlyData
-								.filter((data) => data.hour >= 12 && data.hour < 18)
-								.reduce((sum, data) => sum + data.count, 0)}
-						</p>
-					</div>
-					<div>
-						<p class="font-semibold">Evening</p>
-						<p class="text-muted-foreground">18-24</p>
-						<p class="font-medium">
-							{transactionAnalytics.hourlyData
-								.filter((data) => data.hour >= 18)
-								.reduce((sum, data) => sum + data.count, 0)}
-						</p>
-					</div>
+				<div class="mt-4 flex items-center justify-between text-sm text-muted-foreground">
+					<span>12 AM</span>
+					<span
+						>Peak: {transactionAnalytics.peakHour.hour}:00 ({transactionAnalytics.peakHour.count} transactions)</span
+					>
+					<span>11 PM</span>
 				</div>
 			</CardContent>
 		</Card>
-	</div>
 
-	<!-- Advanced Filters -->
-	<Card>
-		<CardContent class="p-6">
-			<div class="space-y-4">
-				<div class="flex flex-wrap items-center gap-4">
-					<div class="relative min-w-64 flex-1">
-						<Search
-							class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-						/>
-						<Input
-							placeholder="Search transactions by reference number, auth code, PAN, or amount..."
-							bind:value={searchQuery}
-							class="pl-10"
-						/>
+		<!-- Weekly Performance and Amount Distribution -->
+		<div class="grid gap-4 lg:grid-cols-2">
+			<!-- Weekly Performance -->
+			<Card>
+				<CardHeader>
+					<CardTitle class="flex items-center gap-2">
+						<CalendarIcon class="h-5 w-5" />
+						Weekly Performance
+					</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<div class="space-y-3">
+						{#each transactionAnalytics.weeklyData as day}
+							{@const maxCount = Math.max(...transactionAnalytics.weeklyData.map((d) => d.count))}
+							{@const percentage = maxCount > 0 ? (day.count / maxCount) * 100 : 0}
+							<div class="flex items-center justify-between">
+								<div class="flex-1">
+									<div class="mb-1 flex items-center justify-between">
+										<span class="text-sm font-medium">{day.day}</span>
+										<span class="text-sm text-muted-foreground">{day.count} transactions</span>
+									</div>
+									<Progress value={percentage} class="h-2" />
+									<div class="mt-1 text-xs text-muted-foreground">
+										{formatAmount(day.revenue)} revenue
+									</div>
+								</div>
+							</div>
+						{/each}
 					</div>
-					<Separator orientation="vertical" class="h-10" />
-					<div class="flex items-center gap-2">
-						<Label class="text-sm">Status:</Label>
-						<select
-							bind:value={selectedStatus}
-							class="rounded border bg-transparent px-3 py-1 text-sm"
-						>
-							<option value="all">All</option>
-							<option value="approved">Approved</option>
-							<option value="declined">Declined</option>
-							<option value="pending">Pending</option>
-						</select>
-					</div>
-					<div class="flex items-center gap-2">
-						<Label class="text-sm">Timeframe:</Label>
-						<select
-							bind:value={selectedTimeframe}
-							class="rounded border bg-transparent px-3 py-1 text-sm"
-						>
-							<option value="all">All Time</option>
-							<option value="24h">Last 24 Hours</option>
-							<option value="7d">Last 7 Days</option>
-							<option value="30d">Last 30 Days</option>
-							<option value="90d">Last 90 Days</option>
-							<option value="custom">Custom Range</option>
-						</select>
-					</div>
-					<Button variant="outline" size="sm">
-						<Filter class="mr-2 h-4 w-4" />
-						Advanced
-					</Button>
-				</div>
+				</CardContent>
+			</Card>
 
-				<!-- Active Filters Display -->
-				{#if searchQuery || selectedStatus !== 'all' || selectedTimeframe !== 'all' || dateRangeStart || dateRangeEnd}
-					<div class="flex flex-wrap items-center gap-2">
-						<span class="text-sm text-muted-foreground">Active filters:</span>
-						{#if searchQuery}
-							<Badge variant="secondary" class="gap-1">
-								Search: {searchQuery}
-								<button
-									onclick={() => (searchQuery = '')}
-									class="ml-1 rounded-full p-0.5 hover:bg-destructive/20"
-								>
-									<XCircle class="h-3 w-3" />
-								</button>
-							</Badge>
-						{/if}
-						{#if selectedStatus !== 'all'}
-							<Badge variant="secondary" class="gap-1">
-								Status: {selectedStatus}
-								<button
-									onclick={() => (selectedStatus = 'all')}
-									class="ml-1 rounded-full p-0.5 hover:bg-destructive/20"
-								>
-									<XCircle class="h-3 w-3" />
-								</button>
-							</Badge>
-						{/if}
-						{#if selectedTimeframe !== 'all'}
-							<Badge variant="secondary" class="gap-1">
-								Time: {selectedTimeframe === 'custom' ? formatDateRange() : selectedTimeframe}
-								<button
-									onclick={() => {
-										selectedTimeframe = 'all';
-										clearDateRange();
-									}}
-									class="ml-1 rounded-full p-0.5 hover:bg-destructive/20"
-								>
-									<XCircle class="h-3 w-3" />
-								</button>
-							</Badge>
-						{/if}
-						<Button
-							variant="ghost"
-							size="sm"
-							onclick={() => {
-								searchQuery = '';
-								selectedStatus = 'all';
-								selectedTimeframe = 'all';
-								clearDateRange();
-							}}
-							class="text-xs"
-						>
-							Clear all
+			<!-- Amount Distribution -->
+			<Card>
+				<CardHeader>
+					<CardTitle class="flex items-center gap-2">
+						<PieChart class="h-5 w-5" />
+						Transaction Amount Distribution
+					</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<div class="space-y-3">
+						{#each transactionAnalytics.amountRanges as range}
+							{@const maxCount = Math.max(...transactionAnalytics.amountRanges.map((r) => r.count))}
+							{@const percentage = maxCount > 0 ? (range.count / maxCount) * 100 : 0}
+							{@const totalTransactions = transactionAnalytics.approved}
+							{@const sharePercentage =
+								totalTransactions > 0 ? (range.count / totalTransactions) * 100 : 0}
+							<div class="flex items-center justify-between">
+								<div class="flex-1">
+									<div class="mb-1 flex items-center justify-between">
+										<span class="text-sm font-medium">{range.range}</span>
+										<span class="text-sm text-muted-foreground"
+											>{range.count} ({sharePercentage.toFixed(1)}%)</span
+										>
+									</div>
+									<Progress value={percentage} class="h-2" />
+								</div>
+							</div>
+						{/each}
+					</div>
+				</CardContent>
+			</Card>
+		</div>
+
+		<!-- Payment Methods & Peak Hours -->
+		<div class="grid gap-4 md:grid-cols-1">
+			<Card>
+				<CardHeader>
+					<CardTitle class="flex items-center gap-2">
+						<Clock class="h-5 w-5" />
+						Peak Performance
+					</CardTitle>
+				</CardHeader>
+				<CardContent class="space-y-4">
+					<div class="rounded-lg bg-primary/10 p-4 text-center">
+						<div class="text-2xl font-bold text-primary">
+							{transactionAnalytics.peakHour.hour}:00
+						</div>
+						<p class="text-sm text-muted-foreground">Peak Transaction Hour</p>
+						<p class="text-xs text-muted-foreground">
+							{transactionAnalytics.peakHour.count || 0} transactions
+						</p>
+					</div>
+					<div class="grid grid-cols-3 gap-2 text-center text-xs">
+						<div>
+							<p class="font-semibold">Morning</p>
+							<p class="text-muted-foreground">6-12</p>
+							<p class="font-medium">
+								{transactionAnalytics.hourlyData
+									.filter((data) => data.hour >= 6 && data.hour < 12)
+									.reduce((sum, data) => sum + data.count, 0)}
+							</p>
+						</div>
+						<div>
+							<p class="font-semibold">Afternoon</p>
+							<p class="text-muted-foreground">12-18</p>
+							<p class="font-medium">
+								{transactionAnalytics.hourlyData
+									.filter((data) => data.hour >= 12 && data.hour < 18)
+									.reduce((sum, data) => sum + data.count, 0)}
+							</p>
+						</div>
+						<div>
+							<p class="font-semibold">Evening</p>
+							<p class="text-muted-foreground">18-24</p>
+							<p class="font-medium">
+								{transactionAnalytics.hourlyData
+									.filter((data) => data.hour >= 18)
+									.reduce((sum, data) => sum + data.count, 0)}
+							</p>
+						</div>
+					</div>
+				</CardContent>
+			</Card>
+		</div>
+
+		<!-- Advanced Filters -->
+		<Card>
+			<CardContent class="p-6">
+				<div class="space-y-4">
+					<div class="flex flex-wrap items-center gap-4">
+						<div class="relative min-w-64 flex-1">
+							<Search
+								class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+							/>
+							<Input
+								placeholder="Search transactions by reference number, auth code, PAN, or amount..."
+								bind:value={searchQuery}
+								class="pl-10"
+							/>
+						</div>
+						<Separator orientation="vertical" class="h-10" />
+						<div class="flex items-center gap-2">
+							<Label class="text-sm">Status:</Label>
+							<select
+								bind:value={selectedStatus}
+								class="rounded border bg-transparent px-3 py-1 text-sm"
+							>
+								<option value="all">All</option>
+								<option value="approved">Approved</option>
+								<option value="declined">Declined</option>
+								<option value="pending">Pending</option>
+							</select>
+						</div>
+						<div class="flex items-center gap-2">
+							<Label class="text-sm">Timeframe:</Label>
+							<select
+								bind:value={selectedTimeframe}
+								class="rounded border bg-transparent px-3 py-1 text-sm"
+							>
+								<option value="all">All Time</option>
+								<option value="24h">Last 24 Hours</option>
+								<option value="7d">Last 7 Days</option>
+								<option value="30d">Last 30 Days</option>
+								<option value="90d">Last 90 Days</option>
+								<option value="custom">Custom Range</option>
+							</select>
+						</div>
+						<Button variant="outline" size="sm">
+							<Filter class="mr-2 h-4 w-4" />
+							Advanced
 						</Button>
 					</div>
-				{/if}
-			</div>
-		</CardContent>
-	</Card>
 
-	<!-- Transaction Table -->
-	<Card>
-		<CardHeader>
-			<div class="flex items-center justify-between">
-				<CardTitle>Transactions ({filteredTransactions.length})</CardTitle>
-				{#if error}
-					<Badge variant="destructive">{error}</Badge>
-				{/if}
-			</div>
-		</CardHeader>
-		<CardContent class="p-0">
-			{#if paginatedTransactions.length === 0}
-				<div class="flex flex-col items-center justify-center py-12 text-center">
-					<BarChart3 class="mb-4 h-16 w-16 text-muted-foreground opacity-50" />
-					<h3 class="text-lg font-semibold text-muted-foreground">No transactions found</h3>
-					<p class="text-sm text-muted-foreground">
-						{searchQuery || selectedStatus !== 'all' || selectedTimeframe !== 'all'
-							? 'Try adjusting your filters'
-							: 'Get started by processing your first transaction'}
-					</p>
-				</div>
-			{:else}
-				<Table>
-					<TableHeader>
-						<TableHead>Reference</TableHead>
-						<TableHead>Amount</TableHead>
-						<TableHead>Status</TableHead>
-						<TableHead>Date</TableHead>
-						<TableHead>User</TableHead>
-						<TableHead>Auth Code</TableHead>
-						<TableHead class="text-right">Actions</TableHead>
-					</TableHeader>
-					<TableBody>
-						{#each paginatedTransactions as transaction (transaction.id)}
-							<TableRow class="group hover:bg-muted/50">
-								<TableCell class="font-medium">
-									<div class="flex items-center gap-3">
-										<div class="rounded-lg bg-primary/10 p-2">
-											<Receipt class="h-4 w-4 text-primary" />
-										</div>
-										<div>
-											<p class="font-semibold">{transaction.referenceNumber}</p>
-											<p class="text-xs text-muted-foreground">ID: {transaction.id}</p>
-										</div>
-									</div>
-								</TableCell>
-								<TableCell>
-									<div class="flex items-center gap-1">
-										<span class="font-semibold">{formatAmount(transaction.amount || 0)}</span>
-									</div>
-								</TableCell>
-								<TableCell>
-									<Badge variant={getStatusColor(transaction.responseCode)}>
-										{getStatusText(transaction.responseCode)}
-									</Badge>
-								</TableCell>
-								<TableCell>
-									<div class="flex items-center gap-1">
-										<Clock class="h-4 w-4 text-muted-foreground" />
-										<span class="text-sm">{formatDate(transaction.timestamp)}</span>
-									</div>
-								</TableCell>
-								<TableCell>
-									<Badge variant="outline">
-										User #{transaction.userId}
-									</Badge>
-								</TableCell>
-								<TableCell>
-									<span class="font-mono text-sm">
-										{transaction.authorizationCode || 'N/A'}
-									</span>
-								</TableCell>
-								<TableCell class="text-right">
-									<div class="flex items-center justify-end gap-1">
-										<Button
-											variant="ghost"
-											size="sm"
-											onclick={() => openDetailsModal(transaction)}
-											class="h-8 w-8 p-0"
-										>
-											<Eye class="h-4 w-4" />
-										</Button>
-									</div>
-								</TableCell>
-							</TableRow>
-						{/each}
-					</TableBody>
-				</Table>
-
-				<!-- Pagination -->
-				{#if totalPages > 1}
-					<div class="flex items-center justify-between border-t px-6 py-4">
-						<div class="text-sm text-muted-foreground">
-							Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(
-								currentPage * itemsPerPage,
-								filteredTransactions.length
-							)} of {filteredTransactions.length} results
+					<!-- Active Filters Display -->
+					{#if searchQuery || selectedStatus !== 'all' || selectedTimeframe !== 'all' || dateRangeStart || dateRangeEnd}
+						<div class="flex flex-wrap items-center gap-2">
+							<span class="text-sm text-muted-foreground">Active filters:</span>
+							{#if searchQuery}
+								<Badge variant="secondary" class="gap-1">
+									Search: {searchQuery}
+									<button
+										onclick={() => (searchQuery = '')}
+										class="ml-1 rounded-full p-0.5 hover:bg-destructive/20"
+									>
+										<XCircle class="h-3 w-3" />
+									</button>
+								</Badge>
+							{/if}
+							{#if selectedStatus !== 'all'}
+								<Badge variant="secondary" class="gap-1">
+									Status: {selectedStatus}
+									<button
+										onclick={() => (selectedStatus = 'all')}
+										class="ml-1 rounded-full p-0.5 hover:bg-destructive/20"
+									>
+										<XCircle class="h-3 w-3" />
+									</button>
+								</Badge>
+							{/if}
+							{#if selectedTimeframe !== 'all'}
+								<Badge variant="secondary" class="gap-1">
+									Time: {selectedTimeframe === 'custom' ? formatDateRange() : selectedTimeframe}
+									<button
+										onclick={() => {
+											selectedTimeframe = 'all';
+											clearDateRange();
+										}}
+										class="ml-1 rounded-full p-0.5 hover:bg-destructive/20"
+									>
+										<XCircle class="h-3 w-3" />
+									</button>
+								</Badge>
+							{/if}
+							<Button
+								variant="ghost"
+								size="sm"
+								onclick={() => {
+									searchQuery = '';
+									selectedStatus = 'all';
+									selectedTimeframe = 'all';
+									clearDateRange();
+								}}
+								class="text-xs"
+							>
+								Clear all
+							</Button>
 						</div>
+					{/if}
+				</div>
+			</CardContent>
+		</Card>
 
-						<Pagination.Root
-							count={filteredTransactions.length}
-							perPage={itemsPerPage}
-							page={currentPage}
-						>
-							{#snippet children({ pages, currentPage: paginationCurrentPage })}
-								<Pagination.Content>
-									<Pagination.Item>
-										<Pagination.PrevButton
-											onclick={() => {
-												if (currentPage > 1) {
-													currentPage = currentPage - 1;
-												}
-											}}
-										/>
-									</Pagination.Item>
-									{#each pages as page (page.key)}
-										{#if page.type === 'ellipsis'}
-											<Pagination.Item>
-												<Pagination.Ellipsis />
-											</Pagination.Item>
-										{:else}
-											<Pagination.Item>
-												<Pagination.Link
-													{page}
-													isActive={paginationCurrentPage === page.value}
-													onclick={() => {
-														currentPage = page.value;
-													}}
-												>
-													{page.value}
-												</Pagination.Link>
-											</Pagination.Item>
-										{/if}
-									{/each}
-									<Pagination.Item>
-										<Pagination.NextButton
-											onclick={() => {
-												if (currentPage < totalPages) {
-													currentPage = currentPage + 1;
-												}
-											}}
-										/>
-									</Pagination.Item>
-								</Pagination.Content>
-							{/snippet}
-						</Pagination.Root>
+		<!-- Transaction Table -->
+		<Card>
+			<CardHeader>
+				<div class="flex items-center justify-between">
+					<CardTitle>Transactions ({filteredTransactions.length})</CardTitle>
+					{#if error}
+						<Badge variant="destructive">{error}</Badge>
+					{/if}
+				</div>
+			</CardHeader>
+			<CardContent class="p-0">
+				{#if paginatedTransactions.length === 0}
+					<div class="flex flex-col items-center justify-center py-12 text-center">
+						<BarChart3 class="mb-4 h-16 w-16 text-muted-foreground opacity-50" />
+						<h3 class="text-lg font-semibold text-muted-foreground">No transactions found</h3>
+						<p class="text-sm text-muted-foreground">
+							{searchQuery || selectedStatus !== 'all' || selectedTimeframe !== 'all'
+								? 'Try adjusting your filters'
+								: 'Get started by processing your first transaction'}
+						</p>
 					</div>
+				{:else}
+					<Table>
+						<TableHeader>
+							<TableHead>Reference</TableHead>
+							<TableHead>Amount</TableHead>
+							<TableHead>Status</TableHead>
+							<TableHead>Date</TableHead>
+							<TableHead>User</TableHead>
+							<TableHead>Auth Code</TableHead>
+							<TableHead class="text-right">Actions</TableHead>
+						</TableHeader>
+						<TableBody>
+							{#each paginatedTransactions as transaction (transaction.id)}
+								<TableRow class="group hover:bg-muted/50">
+									<TableCell class="font-medium">
+										<div class="flex items-center gap-3">
+											<div class="rounded-lg bg-primary/10 p-2">
+												<Receipt class="h-4 w-4 text-primary" />
+											</div>
+											<div>
+												<p class="font-semibold">{transaction.referenceNumber}</p>
+												<p class="text-xs text-muted-foreground">ID: {transaction.id}</p>
+											</div>
+										</div>
+									</TableCell>
+									<TableCell>
+										<div class="flex items-center gap-1">
+											<span class="font-semibold">{formatAmount(transaction.amount || 0)}</span>
+										</div>
+									</TableCell>
+									<TableCell>
+										<Badge variant={getStatusColor(transaction.responseCode)}>
+											{getStatusText(transaction.responseCode)}
+										</Badge>
+									</TableCell>
+									<TableCell>
+										<div class="flex items-center gap-1">
+											<Clock class="h-4 w-4 text-muted-foreground" />
+											<span class="text-sm">{formatDate(transaction.timestamp)}</span>
+										</div>
+									</TableCell>
+									<TableCell>
+										<Badge variant="outline">
+											User #{transaction.userId}
+										</Badge>
+									</TableCell>
+									<TableCell>
+										<span class="font-mono text-sm">
+											{transaction.authorizationCode || 'N/A'}
+										</span>
+									</TableCell>
+									<TableCell class="text-right">
+										<div class="flex items-center justify-end gap-1">
+											<Button
+												variant="ghost"
+												size="sm"
+												onclick={() => openDetailsModal(transaction)}
+												class="h-8 w-8 p-0"
+											>
+												<Eye class="h-4 w-4" />
+											</Button>
+										</div>
+									</TableCell>
+								</TableRow>
+							{/each}
+						</TableBody>
+					</Table>
+
+					<!-- Pagination -->
+					{#if totalPages > 1}
+						<div class="flex items-center justify-between border-t px-6 py-4">
+							<div class="text-sm text-muted-foreground">
+								Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(
+									currentPage * itemsPerPage,
+									filteredTransactions.length
+								)} of {filteredTransactions.length} results
+							</div>
+
+							<Pagination.Root
+								count={filteredTransactions.length}
+								perPage={itemsPerPage}
+								page={currentPage}
+							>
+								{#snippet children({ pages, currentPage: paginationCurrentPage })}
+									<Pagination.Content>
+										<Pagination.Item>
+											<Pagination.PrevButton
+												onclick={() => {
+													if (currentPage > 1) {
+														currentPage = currentPage - 1;
+													}
+												}}
+											/>
+										</Pagination.Item>
+										{#each pages as page (page.key)}
+											{#if page.type === 'ellipsis'}
+												<Pagination.Item>
+													<Pagination.Ellipsis />
+												</Pagination.Item>
+											{:else}
+												<Pagination.Item>
+													<Pagination.Link
+														{page}
+														isActive={paginationCurrentPage === page.value}
+														onclick={() => {
+															currentPage = page.value;
+														}}
+													>
+														{page.value}
+													</Pagination.Link>
+												</Pagination.Item>
+											{/if}
+										{/each}
+										<Pagination.Item>
+											<Pagination.NextButton
+												onclick={() => {
+													if (currentPage < totalPages) {
+														currentPage = currentPage + 1;
+													}
+												}}
+											/>
+										</Pagination.Item>
+									</Pagination.Content>
+								{/snippet}
+							</Pagination.Root>
+						</div>
+					{/if}
 				{/if}
-			{/if}
-		</CardContent>
-	</Card>
+			</CardContent>
+		</Card>
+	</div>
 </div>
 
 <!-- Enhanced Transaction Details Modal -->
