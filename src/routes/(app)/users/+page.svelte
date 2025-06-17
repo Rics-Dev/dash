@@ -237,17 +237,6 @@
 			return createdDate >= dayAgo;
 		}).length;
 
-		// Active users (those who have logged in recently)
-		const activeUsersThisMonth = users.filter((user: User) => {
-			const lastLogin = new Date(user.last_login || user.created_at || '');
-			return lastLogin >= monthAgo;
-		}).length;
-
-		const activeUsersThisWeek = users.filter((user: User) => {
-			const lastLogin = new Date(user.last_login || user.created_at || '');
-			return lastLogin >= weekAgo;
-		}).length;
-
 		// Status analysis
 		const enabledUsers = users.filter((user: User) => user.enabled !== false).length;
 		const disabledUsers = users.length - enabledUsers;
@@ -291,8 +280,6 @@
 			newUsersThisMonth,
 			newUsersThisWeek,
 			newUsersToday,
-			activeUsersThisMonth,
-			activeUsersThisWeek,
 			enabledUsers,
 			disabledUsers,
 			enabledRate,
@@ -596,12 +583,12 @@
 				<CardContent class="p-6">
 					<div class="flex items-center gap-3">
 						<div class="rounded-lg bg-orange-50 p-3">
-							<Activity class="h-6 w-6 text-orange-600" />
+							<TrendingUp class="h-6 w-6 text-orange-600" />
 						</div>
 						<div>
-							<p class="text-sm font-medium text-muted-foreground">Active Users</p>
-							<p class="text-2xl font-bold">{analytics().activeUsersThisMonth}</p>
-							<p class="text-xs text-muted-foreground">Last 30 days</p>
+							<p class="text-sm font-medium text-muted-foreground">New Users</p>
+							<p class="text-2xl font-bold">{analytics().newUsersThisMonth}</p>
+							<p class="text-xs text-muted-foreground">This month</p>
 						</div>
 					</div>
 				</CardContent>
@@ -621,73 +608,6 @@
 							</p>
 						</div>
 					</div>
-				</CardContent>
-			</Card>
-		</div>
-
-		<!-- Role Breakdown and Points Distribution -->
-		<div class="grid gap-6 md:grid-cols-2">
-			<Card>
-				<CardHeader class="pb-3">
-					<div class="flex items-center gap-2">
-						<PieChart class="h-5 w-5 text-muted-foreground" />
-						<CardTitle class="text-lg">Role Breakdown</CardTitle>
-					</div>
-				</CardHeader>
-				<CardContent class="space-y-4">
-					{#each analytics().roleData as role}
-						<div class="flex items-center justify-between">
-							<div class="flex items-center gap-3">
-								<div class="flex items-center gap-2">
-									<Badge variant={getRoleBadgeVariant(role.role)} class="text-xs">
-										{role.role}
-									</Badge>
-									<span class="text-sm text-muted-foreground">
-										{role.count} users
-									</span>
-								</div>
-							</div>
-							<div class="text-right">
-								<p class="text-sm font-medium">{role.totalPoints.toLocaleString()} pts</p>
-								<p class="text-xs text-muted-foreground">
-									{role.enabledCount} enabled
-								</p>
-							</div>
-						</div>
-					{/each}
-				</CardContent>
-			</Card>
-
-			<Card>
-				<CardHeader class="pb-3">
-					<div class="flex items-center gap-2">
-						<BarChart3 class="h-5 w-5 text-muted-foreground" />
-						<CardTitle class="text-lg">Points Distribution</CardTitle>
-					</div>
-				</CardHeader>
-				<CardContent class="space-y-4">
-					{#each analytics().pointRanges as range}
-						<div class="space-y-2">
-							<div class="flex items-center justify-between text-sm">
-								<span class="font-medium">{range.range}</span>
-								<span class="text-muted-foreground">{range.users} users</span>
-							</div>
-							<Progress
-								value={analytics().totalUsers > 0
-									? (range.users / analytics().totalUsers) * 100
-									: 0}
-								class="h-2"
-							/>
-							<div class="flex justify-between text-xs text-muted-foreground">
-								<span>{range.count.toLocaleString()} total points</span>
-								<span
-									>{analytics().totalUsers > 0
-										? ((range.users / analytics().totalUsers) * 100).toFixed(1)
-										: 0}%</span
-								>
-							</div>
-						</div>
-					{/each}
 				</CardContent>
 			</Card>
 		</div>
@@ -719,9 +639,9 @@
 										{user.role || 'User'}
 									</Badge>
 									{#if user.enabled !== false}
-										<Badge variant="default" class="text-xs">Active</Badge>
+										<Badge variant="default" class="text-xs">Enabled</Badge>
 									{:else}
-										<Badge variant="secondary" class="text-xs">Inactive</Badge>
+										<Badge variant="secondary" class="text-xs">Disabled</Badge>
 									{/if}
 								</div>
 								<p class="text-sm text-muted-foreground">{user.email}</p>
@@ -735,6 +655,39 @@
 						</div>
 					{/each}
 				</div>
+			</CardContent>
+		</Card>
+
+		<!-- Role Breakdown and Points Distribution -->
+
+		<Card>
+			<CardHeader class="pb-3">
+				<div class="flex items-center gap-2">
+					<BarChart3 class="h-5 w-5 text-muted-foreground" />
+					<CardTitle class="text-lg">Points Distribution</CardTitle>
+				</div>
+			</CardHeader>
+			<CardContent class="space-y-4">
+				{#each analytics().pointRanges as range}
+					<div class="space-y-2">
+						<div class="flex items-center justify-between text-sm">
+							<span class="font-medium">{range.range}</span>
+							<span class="text-muted-foreground">{range.users} users</span>
+						</div>
+						<Progress
+							value={analytics().totalUsers > 0 ? (range.users / analytics().totalUsers) * 100 : 0}
+							class="h-2"
+						/>
+						<div class="flex justify-between text-xs text-muted-foreground">
+							<span>{range.count.toLocaleString()} total points</span>
+							<span
+								>{analytics().totalUsers > 0
+									? ((range.users / analytics().totalUsers) * 100).toFixed(1)
+									: 0}%</span
+							>
+						</div>
+					</div>
+				{/each}
 			</CardContent>
 		</Card>
 
@@ -832,7 +785,7 @@
 									</TableCell>
 									<TableCell>
 										<Badge variant={user.enabled ? 'default' : 'secondary'}>
-											{user.enabled ? 'Active' : 'Inactive'}
+											{user.enabled ? 'Enabled' : 'Disabled'}
 										</Badge>
 									</TableCell>
 									<TableCell class="text-right">
@@ -968,7 +921,7 @@
 								{selectedUser?.loyaltyPoints || 0} points
 							</Badge>
 							<Badge variant={selectedUser?.enabled ? 'default' : 'secondary'}>
-								{selectedUser?.enabled ? 'Active' : 'Inactive'}
+								{selectedUser?.enabled ? 'Enabled' : 'Disabled'}
 							</Badge>
 						</div>
 					</div>
@@ -1289,7 +1242,7 @@
 							bind:checked={formState.enabled}
 							disabled={loading}
 						/>
-						<Label for="enabled">Active Account</Label>
+						<Label for="enabled">Enabled Account</Label>
 					</div>
 				</div>
 			</div>
@@ -1394,7 +1347,7 @@
 							bind:checked={formState.enabled}
 							disabled={loading}
 						/>
-						<Label for="enabled">Active Account</Label>
+						<Label for="enabled">Enabled Account</Label>
 					</div>
 				</div>
 			</div>
