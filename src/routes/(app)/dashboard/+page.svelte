@@ -39,7 +39,10 @@
 		Star,
 		Package,
 		Monitor,
-		Smartphone
+		Smartphone,
+		ArrowBigDown,
+		Target,
+		TrendingUpDownIcon
 	} from 'lucide-svelte';
 
 	import * as Chart from '$lib/components/ui/chart/index.js';
@@ -189,7 +192,6 @@
 </script>
 
 <main class="flex-1 space-y-6 p-6">
-	<!-- Page Header -->
 	<div class="flex items-center justify-between">
 		<div>
 			<h1 class="text-3xl font-bold tracking-tight">Dashboard</h1>
@@ -205,7 +207,6 @@
 		</div>
 	</div>
 
-	<!-- Quick Stats Cards -->
 	<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
 		{#each data.quickStats as stat}
 			{@const IconComponent = getIconComponent(stat.title)}
@@ -236,20 +237,40 @@
 	<!-- Charts and Analytics Section -->
 	<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
 		<!-- Daily Statistics Chart -->
-		<Card class="col-span-4">
-			<CardHeader>
-				<CardTitle class="flex items-center gap-2">
-					<BarChart3 class="h-5 w-5" />
-					Daily Statistics
+		<Card class="col-span-4 overflow-hidden">
+			<CardHeader class="pb-4">
+				<CardTitle class="flex items-center justify-between">
+					<div class="flex items-center gap-2">
+						<BarChart3 class="h-5 w-5 text-primary" />
+						Daily Statistics
+					</div>
+					{#if data.dailyStats && data.dailyStats.length > 0}
+						<div class="flex items-center gap-4 text-sm text-muted-foreground">
+							<div class="flex items-center gap-1">
+								<div
+									class="h-2 w-2 rounded-full"
+									style="background-color: {dailyStatsChartConfig.users.color}"
+								></div>
+								<span>Users</span>
+							</div>
+							<div class="flex items-center gap-1">
+								<div
+									class="h-2 w-2 rounded-full"
+									style="background-color: {dailyStatsChartConfig.transactions.color}"
+								></div>
+								<span>Transactions</span>
+							</div>
+						</div>
+					{/if}
 				</CardTitle>
 			</CardHeader>
-			<CardContent class="pl-2">
-				<div class="h-[300px] w-full">
+			<CardContent class="pt-0">
+				<div class="h-[320px] w-full">
 					{#if data.dailyStats && data.dailyStats.length > 0}
-						<Chart.Container config={dailyStatsChartConfig} class="min-h-[200px] w-full">
+						<Chart.Container config={dailyStatsChartConfig} class="h-full w-full">
 							<BarChart
 								data={data.dailyStats as DailyStat[]}
-								xScale={scaleBand().padding(0.25)}
+								xScale={scaleBand().padding(0.3)}
 								x="label"
 								axis="x"
 								seriesLayout="group"
@@ -268,194 +289,99 @@
 								props={{
 									xAxis: {
 										format: (d) => d,
-										tickLabelProps: { 'font-size': 12 }
+										tickLabelProps: {
+											'font-size': 11,
+											'font-weight': 500,
+											fill: 'hsl(var(--muted-foreground))'
+										}
 									},
 									yAxis: {
-										format: (d) => d.toLocaleString(),
-										tickLabelProps: { 'font-size': 12 }
+										format: (d) =>
+											new Intl.NumberFormat('en-US', {
+												notation: d >= 1000 ? 'compact' : 'standard',
+												maximumFractionDigits: 1
+											}).format(d),
+										tickLabelProps: {
+											'font-size': 11,
+											'font-weight': 500,
+											fill: 'hsl(var(--muted-foreground))'
+										}
 									}
 								}}
 							>
-								{#snippet tooltip()}
-									<Chart.Tooltip />
+								{#snippet tooltip(props)}
+									<Chart.Tooltip class="rounded-lg border bg-background p-3 shadow-lg" />
 								{/snippet}
 							</BarChart>
 						</Chart.Container>
 					{:else}
-						<div class="flex h-full items-center justify-center">
-							<p class="text-muted-foreground">No data available</p>
-						</div>
-					{/if}
-				</div>
-			</CardContent>
-		</Card>
-
-		<!-- Calendar & Activity Panel -->
-		<Card class="col-span-3">
-			<CardHeader>
-				<CardTitle class="flex items-center gap-2">
-					<CalendarIcon class="h-5 w-5" />
-					Calendar & Recent Activity
-				</CardTitle>
-			</CardHeader>
-			<CardContent class="space-y-4">
-				<!-- Improved Calendar Section -->
-				<div class="flex flex-col items-center rounded-lg bg-muted/30 p-3">
-					<Calendar type="single" bind:value={selectedDate} class="rounded-md border-0" />
-				</div>
-
-				<Separator />
-
-				<!-- Recent Activity Section -->
-				<div class="space-y-3">
-					<h4 class="flex items-center gap-2 text-sm font-semibold">
-						<Activity class="h-4 w-4" />
-						Recent Activity
-					</h4>
-					<div class="max-h-48 space-y-3 overflow-y-auto">
-						{#if data.recentActivity && data.recentActivity.length > 0}
-							{#each data.recentActivity.slice(0, 5) as activity}
-								{@const IconComponent = getActivityIcon(activity.type)}
-								<div
-									class="flex items-start space-x-3 rounded-lg p-2 transition-colors hover:bg-muted/50"
-								>
-									<div class="mt-1">
-										<IconComponent class="h-4 w-4 text-muted-foreground" />
-									</div>
-									<div class="flex-1 space-y-1">
-										<p class="text-sm">{activity.message}</p>
-										<p class="text-xs text-muted-foreground">
-											{formatRelativeTime(activity.timestamp)}
-										</p>
-									</div>
-									<div
-										class="mt-2 h-2 w-2 rounded-full {activity.status === 'success'
-											? 'bg-green-500'
-											: activity.status === 'info'
-												? 'bg-blue-500'
-												: activity.status === 'warning'
-													? 'bg-yellow-500'
-													: 'bg-purple-500'}"
-									></div>
-								</div>
-							{/each}
-						{:else}
-							<div class="py-6 text-center">
-								<Activity class="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
-								<p class="text-sm text-muted-foreground">No recent activity</p>
+						<div class="flex h-full flex-col items-center justify-center gap-3">
+							<div class="rounded-full bg-muted p-3">
+								<BarChart3 class="h-6 w-6 text-muted-foreground" />
 							</div>
-						{/if}
-					</div>
-				</div>
-			</CardContent>
-		</Card>
-	</div>
-
-	<!-- Revenue Breakdown Chart -->
-	<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-		<!-- Revenue by Platform -->
-		<Card class="col-span-4">
-			<CardHeader>
-				<CardTitle class="flex items-center gap-2">
-					<PieChart class="h-5 w-5" />
-					Revenue by Platform
-				</CardTitle>
-			</CardHeader>
-			<CardContent>
-				<div class="h-[300px] w-full">
-					{#if revenueBreakdownData && revenueBreakdownData.length > 0}
-						<Chart.Container config={revenueAreaChartConfig} class="min-h-[200px] w-full">
-							<AreaChart
-								data={revenueBreakdownData}
-								xScale={scaleBand().padding(0.1)}
-								x="month"
-								axis="x"
-								legend
-								series={[
-									{
-										key: 'web',
-										label: revenueAreaChartConfig.web.label,
-										color: revenueAreaChartConfig.web.color
-									},
-									{
-										key: 'mobile',
-										label: revenueAreaChartConfig.mobile.label,
-										color: revenueAreaChartConfig.mobile.color
-									}
-								]}
-								props={{
-									xAxis: {
-										format: (d) => d,
-										tickLabelProps: { 'font-size': 12 }
-									},
-									yAxis: {
-										format: (d) =>
-											new Intl.NumberFormat('ar-DZ', {
-												style: 'currency',
-												currency: 'DZD'
-											}).format(d),
-										tickLabelProps: { 'font-size': 12 }
-									}
-								}}
-							>
-								{#snippet tooltip()}
-									<Chart.Tooltip />
-								{/snippet}
-							</AreaChart>
-						</Chart.Container>
-					{:else}
-						<div class="flex h-full items-center justify-center">
-							<p class="text-muted-foreground">No data available</p>
+							<div class="text-center">
+								<p class="font-medium text-muted-foreground">No data available</p>
+								<p class="text-sm text-muted-foreground/80">
+									Statistics will appear when data is collected
+								</p>
+							</div>
 						</div>
 					{/if}
 				</div>
 			</CardContent>
 		</Card>
 
-		<!-- System Performance Chart -->
+		<!-- Recent Activity -->
 		<Card class="col-span-3">
 			<CardHeader>
 				<CardTitle class="flex items-center gap-2">
 					<Activity class="h-5 w-5" />
-					System Performance
+					Recent Activity
 				</CardTitle>
 			</CardHeader>
-			<CardContent>
-				<div class="h-[300px] w-full">
-					{#if performanceData && performanceData.length > 0}
-						<Chart.Container config={performanceChartConfig} class="min-h-[200px] w-full">
-							<BarChart
-								data={performanceData}
-								xScale={scaleBand().padding(0.3)}
-								x="metric"
-								y="usage"
-								axis="x"
-								series={[
-									{
-										key: 'usage',
-										label: 'Usage %',
-										color: '#6366f1'
-									}
-								]}
-								props={{
-									xAxis: {
-										format: (d) => d,
-										tickLabelProps: { 'font-size': 12 }
-									},
-									yAxis: {
-										format: (d) => `${d}%`,
-										tickLabelProps: { 'font-size': 12 }
-									}
-								}}
+			<CardContent class="h-full">
+				<div class="h-full max-h-80 space-y-3 overflow-y-auto pt-5">
+					{#if data.recentActivity && data.recentActivity.length > 0}
+						{#each data.recentActivity.slice(0, 4) as activity}
+							{@const ActivityIcon = getActivityIcon(activity.type)}
+							<div
+								class="flex items-start space-x-3 rounded-lg p-2 transition-colors hover:bg-muted/50"
 							>
-								{#snippet tooltip()}
-									<Chart.Tooltip />
-								{/snippet}
-							</BarChart>
-						</Chart.Container>
+								<div class="mt-1">
+									<ActivityIcon class="h-4 w-4 text-muted-foreground" />
+								</div>
+								<div class="flex-1 space-y-1">
+									<div class="flex items-center justify-between">
+										<p class="text-sm font-medium">{activity.message}</p>
+										<Badge
+											variant={activity.status === 'success'
+												? 'default'
+												: activity.status === 'info'
+													? 'secondary'
+													: 'outline'}
+										>
+											{activity.status}
+										</Badge>
+									</div>
+									<p class="text-xs text-muted-foreground">
+										{formatRelativeTime(activity.timestamp)}
+									</p>
+								</div>
+								<div
+									class="mt-2 h-2 w-2 rounded-full {activity.status === 'success'
+										? 'bg-green-500'
+										: activity.status === 'info'
+											? 'bg-blue-500'
+											: 'bg-gray-500'}"
+								></div>
+							</div>
+						{/each}
 					{:else}
 						<div class="flex h-full items-center justify-center">
-							<p class="text-muted-foreground">No data available</p>
+							<div class="text-center">
+								<Activity class="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
+								<p class="text-sm text-muted-foreground">No recent activity</p>
+							</div>
 						</div>
 					{/if}
 				</div>
@@ -463,68 +389,92 @@
 		</Card>
 	</div>
 
-	<!-- Growth Trends Chart -->
-	<div class="grid gap-4 md:grid-cols-1">
+	<!-- Quick Performance Insights -->
+	<div class="grid gap-4 md:grid-cols-2">
+		<!-- Today's Performance -->
 		<Card>
-			<CardHeader>
-				<CardTitle class="flex items-center gap-2">
-					<TrendingUp class="h-5 w-5" />
-					Monthly Growth Trends
+			<CardHeader class="pb-2">
+				<CardTitle class="flex items-center gap-2 text-lg">
+					<CalendarIcon class="h-4 w-4" />
+					Today's Performance
 				</CardTitle>
 			</CardHeader>
-			<CardContent class="pb-6">
-				<div class="h-[280px] w-full">
-					{#if data.monthlyGrowth}
-						{@const growthData = [
-							{ category: 'Users', growth: data.monthlyGrowth.users || 0 },
-							{ category: 'Revenue', growth: data.monthlyGrowth.revenue || 0 },
-							{ category: 'Transactions', growth: data.monthlyGrowth.transactions || 0 },
-							{ category: 'Engagement', growth: data.monthlyGrowth.engagement || 0 }
-						]}
-						<Chart.Container
-							config={{
-								growth: {
-									label: 'Growth %',
-									color: '#10b981'
-								}
-							}}
-							class="h-full w-full"
-						>
-							<BarChart
-								data={growthData}
-								xScale={scaleBand().padding(0.2)}
-								x="category"
-								y="growth"
-								axis="x"
-								legend
-								series={[
-									{
-										key: 'growth',
-										label: 'Monthly Growth %',
-										color: '#10b981'
-									}
-								]}
-								props={{
-									xAxis: {
-										format: (d) => d,
-										tickLabelProps: { 'font-size': 12 }
-									},
-									yAxis: {
-										format: (d) => `${d}%`,
-										tickLabelProps: { 'font-size': 12 }
-									}
-								}}
+			<CardContent class="space-y-3">
+				<div class="flex items-center justify-between">
+					<span class="text-sm text-muted-foreground">New Users</span>
+					<span class="font-semibold"
+						>{data.dailyStats && data.dailyStats.length > 0
+							? data.dailyStats[data.dailyStats.length - 1]?.users || 0
+							: 0}</span
+					>
+				</div>
+				<div class="flex items-center justify-between">
+					<span class="text-sm text-muted-foreground">Transactions</span>
+					<span class="font-semibold text-green-600"
+						>{data.dailyStats && data.dailyStats.length > 0
+							? data.dailyStats[data.dailyStats.length - 1]?.transactions || 0
+							: 0}</span
+					>
+				</div>
+				<div class="flex items-center justify-between">
+					<span class="text-sm text-muted-foreground">Revenue</span>
+					<span class="font-semibold"
+						>{formatCurrency(
+							data.dailyStats && data.dailyStats.length > 0
+								? data.dailyStats[data.dailyStats.length - 1]?.revenue || 0
+								: 0
+						)}</span
+					>
+				</div>
+			</CardContent>
+		</Card>
+
+		<!-- Growth Metrics -->
+		<Card>
+			<CardHeader class="pb-2">
+				<CardTitle class="flex items-center gap-2 text-lg">
+					<TrendingUp class="h-4 w-4" />
+					Growth Metrics
+				</CardTitle>
+			</CardHeader>
+			<CardContent class="space-y-3">
+				<div class="flex items-center justify-between">
+					<span class="text-sm text-muted-foreground">User Growth</span>
+					<div class="flex items-center gap-1">
+						{#if (data.monthlyGrowth?.users || 0) >= 0}
+							<TrendingUp class="h-3 w-3 text-green-600" />
+							<span class="font-semibold text-green-600"
+								>+{data.monthlyGrowth?.users?.toFixed(1) || 0}%</span
 							>
-								{#snippet tooltip()}
-									<Chart.Tooltip />
-								{/snippet}
-							</BarChart>
-						</Chart.Container>
-					{:else}
-						<div class="flex h-full items-center justify-center">
-							<p class="text-muted-foreground">No growth data available</p>
-						</div>
-					{/if}
+						{:else}
+							<TrendingDown class="h-3 w-3 text-red-600" />
+							<span class="font-semibold text-red-600"
+								>{data.monthlyGrowth?.users?.toFixed(1) || 0}%</span
+							>
+						{/if}
+					</div>
+				</div>
+				<div class="flex items-center justify-between">
+					<span class="text-sm text-muted-foreground">Revenue Growth</span>
+					<div class="flex items-center gap-1">
+						{#if (data.monthlyGrowth?.revenue || 0) >= 0}
+							<TrendingUp class="h-3 w-3 text-green-600" />
+							<span class="font-semibold text-green-600"
+								>+{data.monthlyGrowth?.revenue?.toFixed(1) || 0}%</span
+							>
+						{:else}
+							<TrendingDown class="h-3 w-3 text-red-600" />
+							<span class="font-semibold text-red-600"
+								>{data.monthlyGrowth?.revenue?.toFixed(1) || 0}%</span
+							>
+						{/if}
+					</div>
+				</div>
+				<div class="flex items-center justify-between">
+					<span class="text-sm text-muted-foreground">Engagement</span>
+					<span class="font-semibold text-blue-600"
+						>{data.monthlyGrowth?.engagement?.toFixed(1) || 0}%</span
+					>
 				</div>
 			</CardContent>
 		</Card>
@@ -590,7 +540,7 @@
 					{#each data.topArticles as article}
 						<div class="flex items-center justify-between rounded-lg border p-3">
 							<div class="space-y-1">
-								<p class="text-sm font-medium leading-none">{article.title}</p>
+								<p class="text-sm font-medium leading-none">{article.name}</p>
 								<p class="text-xs text-muted-foreground">
 									{article.sales} sales • ${article.price?.toFixed(2)}
 								</p>
@@ -754,90 +704,4 @@
 			</Carousel>
 		</CardContent>
 	</Card>
-
-	<!-- System Health & Alerts -->
-	<div class="grid gap-4 md:grid-cols-2">
-		<Card>
-			<CardHeader>
-				<CardTitle class="flex items-center gap-2">
-					<Activity class="h-5 w-5" />
-					System Health
-				</CardTitle>
-			</CardHeader>
-			<CardContent class="space-y-4">
-				<div class="space-y-2">
-					<div class="flex items-center justify-between">
-						<span class="text-sm">API Response Time</span>
-						<span class="text-sm font-medium">{data.systemHealth?.apiResponseTime || 142}ms</span>
-					</div>
-					<Progress
-						value={Math.max(0, 100 - (data.systemHealth?.apiResponseTime || 142) / 5)}
-						class="h-2"
-					/>
-				</div>
-				<div class="space-y-2">
-					<div class="flex items-center justify-between">
-						<span class="text-sm">Database Performance</span>
-						<span class="text-sm font-medium">{data.systemHealth?.databasePerformance || 98}%</span>
-					</div>
-					<Progress value={data.systemHealth?.databasePerformance || 98} class="h-2" />
-				</div>
-				<div class="space-y-2">
-					<div class="flex items-center justify-between">
-						<span class="text-sm">Memory Usage</span>
-						<span class="text-sm font-medium">{data.systemHealth?.memoryUsage || 64}%</span>
-					</div>
-					<Progress value={data.systemHealth?.memoryUsage || 64} class="h-2" />
-				</div>
-				<div class="space-y-2">
-					<div class="flex items-center justify-between">
-						<span class="text-sm">CPU Usage</span>
-						<span class="text-sm font-medium">{data.systemHealth?.cpuUsage || 32}%</span>
-					</div>
-					<Progress value={data.systemHealth?.cpuUsage || 32} class="h-2" />
-				</div>
-			</CardContent>
-		</Card>
-
-		<Card>
-			<CardHeader>
-				<CardTitle class="flex items-center gap-2">
-					<Clock class="h-5 w-5" />
-					Recent Alerts
-				</CardTitle>
-			</CardHeader>
-			<CardContent>
-				<div class="space-y-4">
-					<div class="flex items-start space-x-3">
-						<div class="mt-2 h-2 w-2 rounded-full bg-green-500"></div>
-						<div class="space-y-1">
-							<p class="text-sm font-medium">System backup completed successfully</p>
-							<p class="text-xs text-muted-foreground">5 minutes ago</p>
-						</div>
-					</div>
-					<div class="flex items-start space-x-3">
-						<div class="mt-2 h-2 w-2 rounded-full bg-yellow-500"></div>
-						<div class="space-y-1">
-							<p class="text-sm font-medium">High memory usage detected</p>
-							<p class="text-xs text-muted-foreground">15 minutes ago</p>
-						</div>
-					</div>
-					<div class="flex items-start space-x-3">
-						<div class="mt-2 h-2 w-2 rounded-full bg-blue-500"></div>
-						<div class="space-y-1">
-							<p class="text-sm font-medium">New feature deployment started</p>
-							<p class="text-xs text-muted-foreground">1 hour ago</p>
-						</div>
-					</div>
-					<div class="flex items-start space-x-3">
-						<div class="mt-2 h-2 w-2 rounded-full bg-red-500"></div>
-						<div class="space-y-1">
-							<p class="text-sm font-medium">Failed login attempt detected</p>
-							<p class="text-xs text-muted-foreground">2 hours ago</p>
-						</div>
-					</div>
-				</div>
-			</CardContent>
-		</Card>
-	</div>
 </main>

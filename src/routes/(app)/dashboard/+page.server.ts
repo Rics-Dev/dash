@@ -114,12 +114,10 @@ export const load: PageServerLoad = async ({ locals }) => {
 					? 100
 					: 0;
 
-		// Calculate active users (users who have logged in in the last 30 days)
 		const activeUsers = users.filter(
 			(user: User) => new Date(user.last_login || user.created_at || '') >= thirtyDaysAgo
 		).length;
 
-		// Calculate transaction statistics
 		const approvedTransactions = transactions.filter((t: Transaction) => t.responseCode === '00');
 		const totalRevenue = approvedTransactions.reduce(
 			(sum: number, t: Transaction) => sum + (t.amount || 0),
@@ -194,7 +192,6 @@ export const load: PageServerLoad = async ({ locals }) => {
 			});
 		}
 
-		// Get recent transactions (last 10)
 		const recentTransactions = transactions
 			.sort(
 				(a: Transaction, b: Transaction) =>
@@ -336,7 +333,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 				cpuUsage: Math.floor(Math.random() * 30) + 15, // 15-45%
 				uptime: 99.8
 			},
-			recentActivity: recentActivity.slice(0, 6),
+			recentActivity: recentActivity.slice(0, 8),
 			monthlyGrowth: {
 				users: userGrowthRate,
 				revenue: revenueGrowthRate,
