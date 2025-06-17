@@ -21,6 +21,14 @@
 		CarouselPrevious
 	} from '$lib/components/ui/carousel';
 	import {
+		DropdownMenu,
+		DropdownMenuContent,
+		DropdownMenuItem,
+		DropdownMenuLabel,
+		DropdownMenuSeparator,
+		DropdownMenuTrigger
+	} from '$lib/components/ui/dropdown-menu';
+	import {
 		TrendingUp,
 		TrendingDown,
 		Users,
@@ -42,12 +50,17 @@
 		Smartphone,
 		ArrowBigDown,
 		Target,
-		TrendingUpDownIcon
+		TrendingUpDownIcon,
+		Download,
+		FileText,
+		FileSpreadsheet,
+		ChevronDown
 	} from 'lucide-svelte';
 
 	import * as Chart from '$lib/components/ui/chart/index.js';
 	import { scaleBand, scaleLinear } from 'd3-scale';
 	import { BarChart, AreaChart, ScatterChart } from 'layerchart';
+	import { exportDashboardReport, type ReportData } from '$lib/utils/export';
 
 	type DailyStat = {
 		date: string;
@@ -189,6 +202,23 @@
 			return `${diffDays}d ago`;
 		}
 	}
+
+	function handleExportReport(format: 'csv' | 'pdf') {
+		const reportData: ReportData = {
+			quickStats: data.quickStats,
+			userStats: data.userStats,
+			transactionStats: data.transactionStats,
+			rewardStats: data.rewardStats,
+			systemHealth: data.systemHealth,
+			recentActivity: data.recentActivity,
+			monthlyGrowth: data.monthlyGrowth,
+			recentTransactions: data.recentTransactions,
+			topArticles: data.topArticles,
+			dailyStats: data.dailyStats
+		};
+
+		exportDashboardReport(reportData, format);
+	}
 </script>
 
 <main class="flex-1 space-y-6 p-6">
@@ -200,10 +230,27 @@
 			</p>
 		</div>
 		<div class="flex items-center space-x-2">
-			<Button variant="outline">
-				<BarChart3 class="mr-2 h-4 w-4" />
-				Export Report
-			</Button>
+			<DropdownMenu>
+				<DropdownMenuTrigger>
+					<Button variant="outline">
+						<Download class="mr-2 h-4 w-4" />
+						Export Report
+						<ChevronDown class="ml-2 h-4 w-4" />
+					</Button>
+				</DropdownMenuTrigger>
+				<DropdownMenuContent align="end" class="w-48">
+					<DropdownMenuLabel>Export Format</DropdownMenuLabel>
+					<DropdownMenuSeparator />
+					<DropdownMenuItem onclick={() => handleExportReport('csv')}>
+						<FileSpreadsheet class="mr-2 h-4 w-4" />
+						Download CSV
+					</DropdownMenuItem>
+					<DropdownMenuItem onclick={() => handleExportReport('pdf')}>
+						<FileText class="mr-2 h-4 w-4" />
+						Print PDF Report
+					</DropdownMenuItem>
+				</DropdownMenuContent>
+			</DropdownMenu>
 		</div>
 	</div>
 
